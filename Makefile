@@ -1,4 +1,4 @@
-# Makefile for spacetime - cross-platform disk space histogram tool
+# Makefile for diskogram - cross-platform disk space histogram tool
 
 # Compiler
 CC = gcc
@@ -8,12 +8,12 @@ CFLAGS = -Wall -Wextra -O2 -std=c99
 LDFLAGS =
 
 # Target executable
-TARGET = spacetime
+TARGET = diskogram
 
 # Source files
 SOURCES = main.c scan.c histogram.c display.c export.c
 OBJECTS = $(SOURCES:.c=.o)
-HEADERS = spacetime.h
+HEADERS = diskogram.h
 
 # Platform-specific settings
 ifeq ($(OS),Windows_NT)

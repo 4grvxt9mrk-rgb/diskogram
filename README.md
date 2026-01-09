@@ -1,6 +1,6 @@
-# Spacetime
+# Diskogram
 
-A cross-platform command-line tool for visualizing disk space consumption over time. Spacetime generates histograms that show how files in a directory tree are distributed across time periods based on their modification, creation, or access dates.
+A cross-platform command-line tool for visualizing disk space consumption over time. Diskogram generates histograms that show how files in a directory tree are distributed across time periods based on their modification, creation, or access dates.
 
 ## Features
 
@@ -36,13 +36,13 @@ make
 Or with MSVC:
 
 ```bash
-cl /O2 /W3 main.c scan.c histogram.c display.c export.c /Fe:spacetime.exe
+cl /O2 /W3 main.c scan.c histogram.c display.c export.c /Fe:diskogram.exe
 ```
 
 ## Usage
 
 ```
-spacetime [OPTIONS] <directory>
+diskogram [OPTIONS] <directory>
 ```
 
 ### Options
@@ -71,27 +71,27 @@ spacetime [OPTIONS] <directory>
 
 Analyze current directory by modification time (default):
 ```bash
-./spacetime .
+./diskogram .
 ```
 
 Analyze a specific directory by creation time, grouped by month:
 ```bash
-./spacetime -c --month /path/to/directory
+./diskogram -c --month /path/to/directory
 ```
 
 Analyze by access time, grouped by year, export as JSON:
 ```bash
-./spacetime --atime --year --json ~/Documents
+./diskogram --atime --year --json ~/Documents
 ```
 
 Export as CSV for import into spreadsheet:
 ```bash
-./spacetime --csv /data > report.csv
+./diskogram --csv /data > report.csv
 ```
 
 Generate XML for automated reporting:
 ```bash
-./spacetime --month --xml /var/log > monthly_report.xml
+./diskogram --month --xml /var/log > monthly_report.xml
 ```
 
 ## Sample Output
@@ -196,7 +196,7 @@ The codebase is organized into modular components:
 - `histogram.c` - Time bucket management and data aggregation with configurable intervals
 - `display.c` - Terminal output and bar graph rendering
 - `export.c` - CSV, JSON, and XML export functionality
-- `spacetime.h` - Common definitions and function declarations
+- `diskogram.h` - Common definitions and function declarations
 
 Platform-specific code is isolated using `#ifdef` preprocessor directives, with separate implementations for POSIX (macOS/Linux/FreeBSD) and Windows systems.
 

@@ -1,4 +1,4 @@
-#include "spacetime.h"
+#include "diskogram.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
