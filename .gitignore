@@ -1,0 +1,17 @@
+# Object files
+*.o
+*.obj
+
+# Executables
+spacetime
+spacetime.exe
+
+# Editor files
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+*.a
+*.lib
