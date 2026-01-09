@@ -11,7 +11,7 @@ LDFLAGS =
 TARGET = spacetime
 
 # Source files
-SOURCES = main.c scan.c histogram.c display.c
+SOURCES = main.c scan.c histogram.c display.c export.c
 OBJECTS = $(SOURCES:.c=.o)
 HEADERS = spacetime.h
 

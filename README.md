@@ -6,10 +6,11 @@ A cross-platform command-line tool for visualizing disk space consumption over t
 
 - Generate bar graph histograms of disk space grouped by date
 - Three grouping modes: modification time, creation time, and access time
+- Four time interval granularities: hour, day, month, and year
+- Multiple export formats: terminal output (default), CSV, JSON, and XML
 - Portable C code that runs on macOS, Linux, FreeBSD, and Windows
 - Recursive directory scanning
 - Human-readable size formatting (B, KB, MB, GB, etc.)
-- Daily time bucket granularity
 
 ## Building
 
@@ -35,7 +36,7 @@ make
 Or with MSVC:
 
 ```bash
-cl /O2 /W3 main.c scan.c histogram.c display.c /Fe:spacetime.exe
+cl /O2 /W3 main.c scan.c histogram.c display.c export.c /Fe:spacetime.exe
 ```
 
 ## Usage
@@ -46,29 +47,56 @@ spacetime [OPTIONS] <directory>
 
 ### Options
 
+#### Time Grouping Options
 - `-m, --mtime` - Group by modification time (default)
 - `-c, --ctime` - Group by creation time (macOS/BSD) or change time (Linux)
 - `-a, --atime` - Group by access time
+
+#### Interval Options
+- `--hour` - Group by hour
+- `--day` - Group by day (default)
+- `--month` - Group by month
+- `--year` - Group by year
+
+#### Export Format Options
+- `--csv` - Export as CSV format
+- `--json` - Export as JSON format
+- `--xml` - Export as XML format
+- (default) - Display as bar graph in terminal
+
+#### Other Options
 - `-h, --help` - Show help message
 
 ### Examples
 
-Analyze current directory by modification time:
+Analyze current directory by modification time (default):
 ```bash
 ./spacetime .
 ```
 
-Analyze a specific directory by creation time:
+Analyze a specific directory by creation time, grouped by month:
 ```bash
-./spacetime -c /path/to/directory
+./spacetime -c --month /path/to/directory
 ```
 
-Analyze by access time:
+Analyze by access time, grouped by year, export as JSON:
 ```bash
-./spacetime --atime ~/Documents
+./spacetime --atime --year --json ~/Documents
+```
+
+Export as CSV for import into spreadsheet:
+```bash
+./spacetime --csv /data > report.csv
+```
+
+Generate XML for automated reporting:
+```bash
+./spacetime --month --xml /var/log > monthly_report.xml
 ```
 
 ## Sample Output
+
+### Terminal Output (Default)
 
 ```
 Scanning '/Users/username/Documents'...
@@ -80,6 +108,64 @@ Total: 2.34 GB in 1,523 files
 2025-12-20  ########            123.45 MB (67 files)
 2026-01-05  ####################  456.78 MB (234 files)
 2026-01-09  ##################################################  1.72 GB (1199 files)
+```
+
+### CSV Output
+
+```csv
+# Disk Space by Modification Time: /Users/username/Documents
+Time,Bytes,Files,Human-Readable Size
+2025-12-15,47472640,23,45.23 MB
+2025-12-20,129438720,67,123.45 MB
+2026-01-05,478752768,234,456.78 MB
+2026-01-09,1846870016,1199,1.72 GB
+```
+
+### JSON Output
+
+```json
+{
+  "title": "Disk Space by Modification Time: /Users/username/Documents",
+  "total_bytes": 2502534144,
+  "total_files": 1523,
+  "interval": "day",
+  "buckets": [
+    {
+      "time": "2025-12-15",
+      "bytes": 47472640,
+      "files": 23
+    },
+    {
+      "time": "2025-12-20",
+      "bytes": 129438720,
+      "files": 67
+    }
+  ]
+}
+```
+
+### XML Output
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<histogram>
+  <title>Disk Space by Modification Time: /Users/username/Documents</title>
+  <total_bytes>2502534144</total_bytes>
+  <total_files>1523</total_files>
+  <interval>day</interval>
+  <buckets>
+    <bucket>
+      <time>2025-12-15</time>
+      <bytes>47472640</bytes>
+      <files>23</files>
+    </bucket>
+    <bucket>
+      <time>2025-12-20</time>
+      <bytes>129438720</bytes>
+      <files>67</files>
+    </bucket>
+  </buckets>
+</histogram>
 ```
 
 ## Platform Notes
@@ -107,11 +193,20 @@ The codebase is organized into modular components:
 
 - `main.c` - Command-line parsing and program entry point
 - `scan.c` - Cross-platform directory traversal and file metadata collection
-- `histogram.c` - Time bucket management and data aggregation
+- `histogram.c` - Time bucket management and data aggregation with configurable intervals
 - `display.c` - Terminal output and bar graph rendering
+- `export.c` - CSV, JSON, and XML export functionality
 - `spacetime.h` - Common definitions and function declarations
 
 Platform-specific code is isolated using `#ifdef` preprocessor directives, with separate implementations for POSIX (macOS/Linux/FreeBSD) and Windows systems.
+
+## Use Cases
+
+- **Disk cleanup planning**: Identify when large amounts of data were added to plan cleanup strategies
+- **Project timeline analysis**: Visualize when files were created during project development
+- **Compliance and auditing**: Track file access patterns for security audits
+- **Capacity planning**: Export historical data to spreadsheets for trend analysis
+- **Automated reporting**: Generate JSON/XML for integration with monitoring systems
 
 ## License
 

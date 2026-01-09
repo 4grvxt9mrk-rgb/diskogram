@@ -35,6 +35,34 @@ const char* format_time(time_t t, char *buf, size_t bufsize) {
     return buf;
 }
 
+static const char* format_time_interval(time_t t, interval_t interval, char *buf, size_t bufsize) {
+    struct tm *tm_info = localtime(&t);
+    if (!tm_info) {
+        snprintf(buf, bufsize, "unknown");
+        return buf;
+    }
+
+    switch (interval) {
+        case INTERVAL_HOUR:
+            strftime(buf, bufsize, "%Y-%m-%d %H:00", tm_info);
+            break;
+        case INTERVAL_DAY:
+            strftime(buf, bufsize, "%Y-%m-%d", tm_info);
+            break;
+        case INTERVAL_MONTH:
+            strftime(buf, bufsize, "%Y-%m", tm_info);
+            break;
+        case INTERVAL_YEAR:
+            strftime(buf, bufsize, "%Y", tm_info);
+            break;
+        default:
+            strftime(buf, bufsize, "%Y-%m-%d", tm_info);
+            break;
+    }
+
+    return buf;
+}
+
 void display_histogram(const histogram_t *hist, const char *title) {
     if (!hist || hist->bucket_count == 0) {
         printf("No data to display.\n");
@@ -73,7 +101,7 @@ void display_histogram(const histogram_t *hist, const char *title) {
         }
 
         /* Print date and bar */
-        printf("%s  ", format_time(bucket->start_time, time_buf, sizeof(time_buf)));
+        printf("%s  ", format_time_interval(bucket->start_time, hist->interval, time_buf, sizeof(time_buf)));
         for (int j = 0; j < bar_len; j++) {
             printf(BLOCK_CHAR);
         }

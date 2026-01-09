@@ -4,10 +4,44 @@
 #include <string.h>
 
 #define INITIAL_BUCKET_CAPACITY 128
+#define SECONDS_PER_HOUR (60 * 60)
 #define SECONDS_PER_DAY (24 * 60 * 60)
 
-static time_t normalize_to_day(time_t t) {
-    return (t / SECONDS_PER_DAY) * SECONDS_PER_DAY;
+static time_t normalize_time(time_t t, interval_t interval) {
+    struct tm *tm_info;
+    struct tm tm_copy;
+
+    switch (interval) {
+        case INTERVAL_HOUR:
+            return (t / SECONDS_PER_HOUR) * SECONDS_PER_HOUR;
+
+        case INTERVAL_DAY:
+            return (t / SECONDS_PER_DAY) * SECONDS_PER_DAY;
+
+        case INTERVAL_MONTH:
+            tm_info = localtime(&t);
+            if (!tm_info) return t;
+            tm_copy = *tm_info;
+            tm_copy.tm_mday = 1;
+            tm_copy.tm_hour = 0;
+            tm_copy.tm_min = 0;
+            tm_copy.tm_sec = 0;
+            return mktime(&tm_copy);
+
+        case INTERVAL_YEAR:
+            tm_info = localtime(&t);
+            if (!tm_info) return t;
+            tm_copy = *tm_info;
+            tm_copy.tm_mon = 0;
+            tm_copy.tm_mday = 1;
+            tm_copy.tm_hour = 0;
+            tm_copy.tm_min = 0;
+            tm_copy.tm_sec = 0;
+            return mktime(&tm_copy);
+
+        default:
+            return (t / SECONDS_PER_DAY) * SECONDS_PER_DAY;
+    }
 }
 
 static int compare_buckets(const void *a, const void *b) {
@@ -18,7 +52,7 @@ static int compare_buckets(const void *a, const void *b) {
     return 0;
 }
 
-histogram_t* histogram_create(void) {
+histogram_t* histogram_create(interval_t interval) {
     histogram_t *hist = malloc(sizeof(histogram_t));
     if (!hist) return NULL;
 
@@ -32,6 +66,7 @@ histogram_t* histogram_create(void) {
     hist->bucket_capacity = INITIAL_BUCKET_CAPACITY;
     hist->total_bytes = 0;
     hist->total_files = 0;
+    hist->interval = interval;
 
     return hist;
 }
@@ -43,7 +78,7 @@ void histogram_destroy(histogram_t *hist) {
 }
 
 void histogram_add_file(histogram_t *hist, time_t file_time, uint64_t size) {
-    time_t bucket_time = normalize_to_day(file_time);
+    time_t bucket_time = normalize_time(file_time, hist->interval);
 
     /* Find existing bucket or create new one */
     size_t i;

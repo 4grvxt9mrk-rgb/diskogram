@@ -29,6 +29,22 @@ typedef enum {
     GROUP_BY_ATIME      /* access time */
 } grouping_mode_t;
 
+/* Time interval granularity */
+typedef enum {
+    INTERVAL_HOUR,
+    INTERVAL_DAY,
+    INTERVAL_MONTH,
+    INTERVAL_YEAR
+} interval_t;
+
+/* Export formats */
+typedef enum {
+    FORMAT_TEXT,        /* default terminal output */
+    FORMAT_CSV,
+    FORMAT_JSON,
+    FORMAT_XML
+} export_format_t;
+
 /* Time bucket (e.g., a day, week, month, or year) */
 typedef struct {
     time_t start_time;
@@ -43,6 +59,7 @@ typedef struct {
     size_t bucket_capacity;
     uint64_t total_bytes;
     uint64_t total_files;
+    interval_t interval;
 } histogram_t;
 
 /* Function declarations */
@@ -51,13 +68,16 @@ typedef struct {
 int scan_directory(const char *path, grouping_mode_t mode, histogram_t *hist);
 
 /* Histogram management */
-histogram_t* histogram_create(void);
+histogram_t* histogram_create(interval_t interval);
 void histogram_destroy(histogram_t *hist);
 void histogram_add_file(histogram_t *hist, time_t file_time, uint64_t size);
 void histogram_finalize(histogram_t *hist);
 
-/* Display */
+/* Display and export */
 void display_histogram(const histogram_t *hist, const char *title);
+void export_csv(const histogram_t *hist, const char *title);
+void export_json(const histogram_t *hist, const char *title);
+void export_xml(const histogram_t *hist, const char *title);
 
 /* Utilities */
 const char* format_size(uint64_t bytes, char *buf, size_t bufsize);
