@@ -70,6 +70,13 @@ histogram_t* histogram_create(interval_t interval) {
     hist->total_files = 0;
     hist->interval = interval;
 
+    /* Initialize scan metadata */
+    hist->scan_start_time = time(NULL);
+    hist->scan_end_time = 0;
+    hist->error_count = 0;
+    hist->directories_scanned = 0;
+    hist->last_error[0] = '\0';
+
     return hist;
 }
 
@@ -117,7 +124,12 @@ void histogram_add_file(histogram_t *hist, time_t file_time, uint64_t size) {
 }
 
 void histogram_finalize(histogram_t *hist) {
-    if (!hist || hist->bucket_count == 0) return;
+    if (!hist) return;
+
+    /* Record scan end time */
+    hist->scan_end_time = time(NULL);
+
+    if (hist->bucket_count == 0) return;
 
     /* Sort buckets by time */
     qsort(hist->buckets, hist->bucket_count, sizeof(time_bucket_t), compare_buckets);

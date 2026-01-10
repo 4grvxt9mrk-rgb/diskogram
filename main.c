@@ -20,7 +20,8 @@ static void print_usage(const char *progname) {
     printf("  --json          Export as JSON\n");
     printf("  --xml           Export as XML\n\n");
     printf("Other Options:\n");
-    printf("  -h, --help      Show this help message\n\n");
+    printf("  -h, --help      Show this help message\n");
+    printf("  --version       Show version information\n\n");
     printf("Examples:\n");
     printf("  %s .\n", progname);
     printf("  %s -c --month /path/to/directory\n", progname);
@@ -38,6 +39,9 @@ int main(int argc, char *argv[]) {
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             print_usage(argv[0]);
+            return 0;
+        } else if (strcmp(argv[i], "--version") == 0) {
+            printf("diskogram version %s\n", DISKOGRAM_VERSION);
             return 0;
         } else if (strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "--mtime") == 0) {
             mode = GROUP_BY_MTIME;

@@ -73,9 +73,22 @@ void display_histogram(const histogram_t *hist, const char *title) {
     char time_buf[64];
 
     printf("\n%s\n", title);
-    printf("Total: %s in %lu files\n\n",
+    printf("Total: %s in %lu files",
            format_size(hist->total_bytes, size_buf, sizeof(size_buf)),
            (unsigned long)hist->total_files);
+    printf(" (%lu directories scanned)\n",
+           (unsigned long)hist->directories_scanned);
+
+    /* Show warnings if errors occurred */
+    if (hist->error_count > 0) {
+        printf("\nWARNING: %lu error(s) occurred during scan\n",
+               (unsigned long)hist->error_count);
+        if (hist->last_error[0] != '\0') {
+            printf("Last error: %s\n", hist->last_error);
+        }
+        printf("Results may be incomplete.\n");
+    }
+    printf("\n");
 
     /* Find maximum size for scaling */
     uint64_t max_size = 0;

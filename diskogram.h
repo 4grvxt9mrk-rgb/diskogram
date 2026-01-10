@@ -4,6 +4,12 @@
 #include <stdint.h>
 #include <time.h>
 
+/* Version information */
+#define DISKOGRAM_VERSION_MAJOR 1
+#define DISKOGRAM_VERSION_MINOR 2
+#define DISKOGRAM_VERSION_PATCH 0
+#define DISKOGRAM_VERSION "1.2.0"
+
 /* Platform detection */
 #ifdef _WIN32
     #define PATH_SEPARATOR '\\'
@@ -60,6 +66,13 @@ typedef struct {
     uint64_t total_bytes;
     uint64_t total_files;
     interval_t interval;
+
+    /* Scan metadata */
+    time_t scan_start_time;
+    time_t scan_end_time;
+    uint64_t error_count;
+    uint64_t directories_scanned;
+    char last_error[256];
 } histogram_t;
 
 /* Function declarations */

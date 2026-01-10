@@ -81,9 +81,13 @@ static int scan_directory_posix(const char *path, grouping_mode_t mode, histogra
 
     dir = opendir(path);
     if (!dir) {
-        perror(path);
+        hist->error_count++;
+        snprintf(hist->last_error, sizeof(hist->last_error),
+                 "Cannot open directory: %s", path);
         return -1;
     }
+
+    hist->directories_scanned++;
 
     while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, ".") == 0 ||
@@ -95,7 +99,9 @@ static int scan_directory_posix(const char *path, grouping_mode_t mode, histogra
                  path, PATH_SEPARATOR_STR, entry->d_name);
 
         if (lstat(full_path, &st) != 0) {
-            perror(full_path);
+            hist->error_count++;
+            snprintf(hist->last_error, sizeof(hist->last_error),
+                     "Cannot stat: %s", full_path);
             continue;
         }
 

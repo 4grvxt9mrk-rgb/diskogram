@@ -28,6 +28,14 @@ void export_csv(const histogram_t *hist, const char *title) {
     const char *format = get_interval_format(hist->interval);
 
     printf("# %s\n", title);
+    printf("# Version: %s\n", DISKOGRAM_VERSION);
+    printf("# Scan Duration: %ld seconds\n",
+           (long)(hist->scan_end_time - hist->scan_start_time));
+    printf("# Directories Scanned: %lu\n", (unsigned long)hist->directories_scanned);
+    printf("# Errors: %lu\n", (unsigned long)hist->error_count);
+    if (hist->error_count > 0 && hist->last_error[0] != '\0') {
+        printf("# Last Error: %s\n", hist->last_error);
+    }
     printf("Time,Bytes,Files,Human-Readable Size\n");
 
     for (size_t i = 0; i < hist->bucket_count; i++) {
@@ -57,7 +65,11 @@ void export_json(const histogram_t *hist, const char *title) {
     char time_buf[64];
     const char *format = get_interval_format(hist->interval);
 
+    char start_buf[64], end_buf[64];
+    struct tm *tm_info;
+
     printf("{\n");
+    printf("  \"version\": \"%s\",\n", DISKOGRAM_VERSION);
     printf("  \"title\": \"%s\",\n", title);
     printf("  \"total_bytes\": %lu,\n", (unsigned long)hist->total_bytes);
     printf("  \"total_files\": %lu,\n", (unsigned long)hist->total_files);
@@ -69,6 +81,31 @@ void export_json(const histogram_t *hist, const char *title) {
         case INTERVAL_YEAR: printf("year"); break;
     }
     printf("\",\n");
+
+    /* Scan metadata */
+    tm_info = localtime(&hist->scan_start_time);
+    if (tm_info) {
+        strftime(start_buf, sizeof(start_buf), "%Y-%m-%dT%H:%M:%S", tm_info);
+    } else {
+        snprintf(start_buf, sizeof(start_buf), "unknown");
+    }
+    printf("  \"scan_start\": \"%s\",\n", start_buf);
+
+    tm_info = localtime(&hist->scan_end_time);
+    if (tm_info) {
+        strftime(end_buf, sizeof(end_buf), "%Y-%m-%dT%H:%M:%S", tm_info);
+    } else {
+        snprintf(end_buf, sizeof(end_buf), "unknown");
+    }
+    printf("  \"scan_end\": \"%s\",\n", end_buf);
+    printf("  \"scan_duration_seconds\": %ld,\n",
+           (long)(hist->scan_end_time - hist->scan_start_time));
+    printf("  \"directories_scanned\": %lu,\n", (unsigned long)hist->directories_scanned);
+    printf("  \"error_count\": %lu,\n", (unsigned long)hist->error_count);
+    if (hist->error_count > 0 && hist->last_error[0] != '\0') {
+        printf("  \"last_error\": \"%s\",\n", hist->last_error);
+    }
+
     printf("  \"buckets\": [\n");
 
     for (size_t i = 0; i < hist->bucket_count; i++) {
@@ -101,8 +138,12 @@ void export_xml(const histogram_t *hist, const char *title) {
     char time_buf[64];
     const char *format = get_interval_format(hist->interval);
 
+    char start_buf[64], end_buf[64];
+    struct tm *tm_info;
+
     printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     printf("<histogram>\n");
+    printf("  <version>%s</version>\n", DISKOGRAM_VERSION);
     printf("  <title>%s</title>\n", title);
     printf("  <total_bytes>%lu</total_bytes>\n", (unsigned long)hist->total_bytes);
     printf("  <total_files>%lu</total_files>\n", (unsigned long)hist->total_files);
@@ -114,6 +155,27 @@ void export_xml(const histogram_t *hist, const char *title) {
         case INTERVAL_YEAR: printf("year"); break;
     }
     printf("</interval>\n");
+
+    /* Scan metadata */
+    tm_info = localtime(&hist->scan_start_time);
+    if (tm_info) {
+        strftime(start_buf, sizeof(start_buf), "%Y-%m-%dT%H:%M:%S", tm_info);
+        printf("  <scan_start>%s</scan_start>\n", start_buf);
+    }
+    tm_info = localtime(&hist->scan_end_time);
+    if (tm_info) {
+        strftime(end_buf, sizeof(end_buf), "%Y-%m-%dT%H:%M:%S", tm_info);
+        printf("  <scan_end>%s</scan_end>\n", end_buf);
+    }
+    printf("  <scan_duration_seconds>%ld</scan_duration_seconds>\n",
+           (long)(hist->scan_end_time - hist->scan_start_time));
+    printf("  <directories_scanned>%lu</directories_scanned>\n",
+           (unsigned long)hist->directories_scanned);
+    printf("  <error_count>%lu</error_count>\n", (unsigned long)hist->error_count);
+    if (hist->error_count > 0 && hist->last_error[0] != '\0') {
+        printf("  <last_error>%s</last_error>\n", hist->last_error);
+    }
+
     printf("  <buckets>\n");
 
     for (size_t i = 0; i < hist->bucket_count; i++) {
