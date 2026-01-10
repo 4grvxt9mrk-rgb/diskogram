@@ -3,6 +3,8 @@
 *.obj
 
 # Executables
+diskogram
+diskogram.exe
 spacetime
 spacetime.exe
 
