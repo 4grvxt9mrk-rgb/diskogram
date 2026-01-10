@@ -274,7 +274,11 @@ Platform-specific code is isolated using `#ifdef` preprocessor directives, with 
 
 ## License
 
-This is free and unencumbered software released into the public domain.
+This software is free to use, modify, and distribute for any purpose, including commercial use, with attribution required.
+
+**Required attribution:** "diskogram" by Jethro Rose, with Claude (Anthropic)
+
+See the [LICENSE](LICENSE) file for full details.
 
 ## Contributing
 

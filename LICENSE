@@ -1,0 +1,33 @@
+# License
+
+## Attribution Requirement
+
+This software is free to use, modify, and distribute for any purpose, including commercial use, provided that appropriate credit is given.
+
+### Required Attribution
+
+When using this software in any product (commercial or free), you must include the following attribution in your documentation, about page, credits, or similar prominent location:
+
+**"diskogram" by Jethro Rose, with Claude (Anthropic)**
+
+Or in a more verbose form:
+
+**diskogram - Disk space histogram tool
+Original work by Jethro Rose
+Developed in collaboration with Claude (Anthropic)
+https://github.com/4grvxt9mrk-rgb/diskogram**
+
+### Additional Terms
+
+- The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement.
+- In no event shall the authors or copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or otherwise, arising from, out of or in connection with the software or the use or other dealings in the software.
+- You may modify the source code, but modified versions must clearly indicate that they are derived from the original work and maintain the original attribution.
+- If you distribute the software (modified or unmodified), you must include this license file.
+
+## Summary
+
+- ✅ Use commercially
+- ✅ Modify and distribute
+- ✅ Use privately
+- ⚠️ Must give attribution
+- ⚠️ No warranty provided
