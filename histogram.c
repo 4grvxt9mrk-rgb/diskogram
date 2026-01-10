@@ -26,6 +26,7 @@ static time_t normalize_time(time_t t, interval_t interval) {
             tm_copy.tm_hour = 0;
             tm_copy.tm_min = 0;
             tm_copy.tm_sec = 0;
+            tm_copy.tm_isdst = -1;  /* Let mktime() determine DST */
             return mktime(&tm_copy);
 
         case INTERVAL_YEAR:
@@ -37,6 +38,7 @@ static time_t normalize_time(time_t t, interval_t interval) {
             tm_copy.tm_hour = 0;
             tm_copy.tm_min = 0;
             tm_copy.tm_sec = 0;
+            tm_copy.tm_isdst = -1;  /* Let mktime() determine DST */
             return mktime(&tm_copy);
 
         default:
