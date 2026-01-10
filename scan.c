@@ -30,8 +30,13 @@ static int scan_directory_win32(const char *path, grouping_mode_t mode, histogra
 
     hFind = FindFirstFileA(search_path, &find_data);
     if (hFind == INVALID_HANDLE_VALUE) {
+        hist->error_count++;
+        snprintf(hist->last_error, sizeof(hist->last_error),
+                 "Cannot open directory: %s", path);
         return -1;
     }
+
+    hist->directories_scanned++;
 
     do {
         if (strcmp(find_data.cFileName, ".") == 0 ||
@@ -42,8 +47,12 @@ static int scan_directory_win32(const char *path, grouping_mode_t mode, histogra
         snprintf(full_path, sizeof(full_path), "%s\\%s", path, find_data.cFileName);
 
         if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            /* Skip reparse points (symlinks, junctions, mount points) to avoid infinite loops */
+            if (find_data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+                continue;
+            }
             scan_directory_win32(full_path, mode, hist);
-        } else {
+        } else if (!(find_data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
             ULARGE_INTEGER file_size;
             file_size.LowPart = find_data.nFileSizeLow;
             file_size.HighPart = find_data.nFileSizeHigh;
