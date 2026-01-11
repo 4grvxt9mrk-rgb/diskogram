@@ -187,61 +187,69 @@ Time,Bytes,Files,Human-Readable Size
 
 ### JSON Output
 
+**Note**: Starting with v2.1.0, JSON output always returns an array for consistency across all modes.
+
 ```json
-{
-  "version": "1.2.0",
-  "title": "Disk Space by Modification Time: /Users/username/Documents",
-  "total_bytes": 2502534144,
-  "total_files": 1523,
-  "interval": "day",
-  "scan_start": "2026-01-09T14:23:15",
-  "scan_end": "2026-01-09T14:23:18",
-  "scan_duration_seconds": 3,
-  "directories_scanned": 45,
-  "error_count": 0,
-  "buckets": [
-    {
-      "time": "2025-12-15",
-      "bytes": 47472640,
-      "files": 23
-    },
-    {
-      "time": "2025-12-20",
-      "bytes": 129438720,
-      "files": 67
-    }
-  ]
-}
+[
+  {
+    "version": "2.1.0",
+    "title": "Disk Space by Modification Time: /Users/username/Documents",
+    "total_bytes": 2502534144,
+    "total_files": 1523,
+    "interval": "day",
+    "scan_start": "2026-01-09T14:23:15",
+    "scan_end": "2026-01-09T14:23:18",
+    "scan_duration_seconds": 3,
+    "directories_scanned": 45,
+    "error_count": 0,
+    "buckets": [
+      {
+        "time": "2025-12-15",
+        "bytes": 47472640,
+        "files": 23
+      },
+      {
+        "time": "2025-12-20",
+        "bytes": 129438720,
+        "files": 67
+      }
+    ]
+  }
+]
 ```
 
 ### XML Output
 
+**Note**: Starting with v2.1.0, XML output always uses a `<histograms>` root wrapper for consistency across all modes.
+
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<histogram>
-  <version>1.2.0</version>
-  <title>Disk Space by Modification Time: /Users/username/Documents</title>
-  <total_bytes>2502534144</total_bytes>
-  <total_files>1523</total_files>
-  <interval>day</interval>
-  <scan_start>2026-01-09T14:23:15</scan_start>
-  <scan_end>2026-01-09T14:23:18</scan_end>
-  <scan_duration_seconds>3</scan_duration_seconds>
-  <directories_scanned>45</directories_scanned>
-  <error_count>0</error_count>
-  <buckets>
-    <bucket>
-      <time>2025-12-15</time>
-      <bytes>47472640</bytes>
-      <files>23</files>
-    </bucket>
-    <bucket>
-      <time>2025-12-20</time>
-      <bytes>129438720</bytes>
-      <files>67</files>
-    </bucket>
-  </buckets>
-</histogram>
+<histograms>
+  <histogram>
+    <version>2.1.0</version>
+    <title>Disk Space by Modification Time: /Users/username/Documents</title>
+    <total_bytes>2502534144</total_bytes>
+    <total_files>1523</total_files>
+    <interval>day</interval>
+    <scan_start>2026-01-09T14:23:15</scan_start>
+    <scan_end>2026-01-09T14:23:18</scan_end>
+    <scan_duration_seconds>3</scan_duration_seconds>
+    <directories_scanned>45</directories_scanned>
+    <error_count>0</error_count>
+    <buckets>
+      <bucket>
+        <time>2025-12-15</time>
+        <bytes>47472640</bytes>
+        <files>23</files>
+      </bucket>
+      <bucket>
+        <time>2025-12-20</time>
+        <bytes>129438720</bytes>
+        <files>67</files>
+      </bucket>
+    </buckets>
+  </histogram>
+</histograms>
 ```
 
 ## Metadata and Error Tracking
