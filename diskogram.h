@@ -8,8 +8,8 @@
 /* Version information */
 #define DISKOGRAM_VERSION_MAJOR 2
 #define DISKOGRAM_VERSION_MINOR 0
-#define DISKOGRAM_VERSION_PATCH 0
-#define DISKOGRAM_VERSION "2.0.0"
+#define DISKOGRAM_VERSION_PATCH 1
+#define DISKOGRAM_VERSION "2.0.1"
 
 /* Platform detection */
 #ifdef _WIN32
@@ -99,6 +99,14 @@ void display_histogram(const histogram_t *hist, const char *title);
 void export_csv(const histogram_t *hist, const char *title);
 void export_json(const histogram_t *hist, const char *title);
 void export_xml(const histogram_t *hist, const char *title);
+
+/* Batch export helpers */
+void export_json_array_start(void);
+void export_json_array_item(const histogram_t *hist, const char *title, int is_last);
+void export_json_array_end(void);
+void export_xml_collection_start(void);
+void export_xml_collection_item(const histogram_t *hist, const char *title);
+void export_xml_collection_end(void);
 
 /* Utilities */
 const char* format_size(uint64_t bytes, char *buf, size_t bufsize);

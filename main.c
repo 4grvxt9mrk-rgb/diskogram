@@ -158,6 +158,19 @@ int main(int argc, char *argv[]) {
             if (log_errors_to_stderr) histogram_set_error_stderr(aggregate_hist, 1);
         }
 
+        /* For batch mode with JSON/XML, collect all histograms first */
+        #define MAX_BATCH_HISTOGRAMS 1024
+        histogram_t *batch_histograms[MAX_BATCH_HISTOGRAMS];
+        char *batch_paths[MAX_BATCH_HISTOGRAMS];
+        int batch_count = 0;
+
+        /* Output collection start for JSON/XML batch mode */
+        if (batch_mode && format == FORMAT_JSON) {
+            export_json_array_start();
+        } else if (batch_mode && format == FORMAT_XML) {
+            export_xml_collection_start();
+        }
+
         while (fgets(line, sizeof(line), stdin)) {
             /* Remove trailing newline */
             size_t len = strlen(line);
@@ -188,27 +201,34 @@ int main(int argc, char *argv[]) {
                 char title[512];
                 snprintf(title, sizeof(title), "Disk Space by %s: %s", mode_name, line);
 
-                switch (format) {
-                    case FORMAT_CSV:
-                        export_csv(hist, title);
-                        break;
-                    case FORMAT_JSON:
-                        export_json(hist, title);
-                        break;
-                    case FORMAT_XML:
-                        export_xml(hist, title);
-                        break;
-                    case FORMAT_TEXT:
-                    default:
-                        display_histogram(hist, title);
-                        break;
-                }
+                /* For JSON/XML, store histograms for later output */
+                if (format == FORMAT_JSON || format == FORMAT_XML) {
+                    if (batch_count < MAX_BATCH_HISTOGRAMS) {
+                        batch_histograms[batch_count] = hist;
+                        batch_paths[batch_count] = strdup(title);
+                        batch_count++;
+                    } else {
+                        fprintf(stderr, "Warning: too many paths, skipping: %s\n", line);
+                        histogram_destroy(hist);
+                    }
+                } else {
+                    /* For CSV and TEXT, output immediately */
+                    switch (format) {
+                        case FORMAT_CSV:
+                            export_csv(hist, title);
+                            break;
+                        case FORMAT_TEXT:
+                        default:
+                            display_histogram(hist, title);
+                            break;
+                    }
 
-                if (format == FORMAT_TEXT && path_count > 1) {
-                    printf("\n");
-                }
+                    if (format == FORMAT_TEXT && path_count > 1) {
+                        printf("\n");
+                    }
 
-                histogram_destroy(hist);
+                    histogram_destroy(hist);
+                }
             } else {
                 /* Aggregate mode: accumulate into one histogram */
                 if (format == FORMAT_TEXT) {
@@ -216,6 +236,26 @@ int main(int argc, char *argv[]) {
                 }
                 scan_directory(line, mode, aggregate_hist);
             }
+        }
+
+        /* Output collected JSON/XML batch histograms */
+        if (batch_mode && (format == FORMAT_JSON || format == FORMAT_XML)) {
+            for (int i = 0; i < batch_count; i++) {
+                if (format == FORMAT_JSON) {
+                    export_json_array_item(batch_histograms[i], batch_paths[i], (i == batch_count - 1));
+                } else {
+                    export_xml_collection_item(batch_histograms[i], batch_paths[i]);
+                }
+                histogram_destroy(batch_histograms[i]);
+                free(batch_paths[i]);
+            }
+        }
+
+        /* Output collection end for JSON/XML batch mode */
+        if (batch_mode && format == FORMAT_JSON) {
+            export_json_array_end();
+        } else if (batch_mode && format == FORMAT_XML) {
+            export_xml_collection_end();
         }
 
         if (!batch_mode && aggregate_hist) {
