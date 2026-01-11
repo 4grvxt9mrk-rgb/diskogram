@@ -1,24 +1,39 @@
 # TODO
 
+## Completed Features
+
+### ✅ Error Logging (Implemented in v1.3.0)
+~~Add optional parameter to log ALL errors to a logfile (not just the last error).~~
+
+**Status**: Implemented with `--error-log <file>` and `--log-errors-stderr` flags
+- Simple text file format with timestamps: `[YYYY-MM-DD HH:MM:SS] error message`
+- File is overwritten (not appended) on each run
+- Errors are flushed immediately (no buffering) for reliability
+- Both file and stderr logging can be used simultaneously
+- Works across all platforms (macOS, Linux, FreeBSD, Windows)
+
 ## Future Feature Ideas
 
-### Error Logging
-Add optional parameter to log ALL errors to a logfile (not just the last error).
+### Verbosity Levels
+Add verbosity flags (`-v`, `-vv`, `-vvv`) to control output detail:
+- `-v`: Show progress (directories as they're scanned)
+- `-vv`: Show progress + statistics (files per second, etc.)
+- `-vvv`: Debug mode (show every file processed)
 
-**Rationale**: Currently we only track `error_count` and `last_error`. When scanning large directory trees with many permission errors, it would be useful to see all errors that occurred, not just the most recent one.
+**Use case**: Monitor long-running scans, troubleshoot performance issues
 
-**Implementation considerations**:
-- Add `--error-log <filename>` or `--log-errors <filename>` flag
-- Could be a simple text file with timestamp + error message
-- Or structured format (JSON lines, CSV) for easier parsing
-- Need to decide: append to existing log or overwrite?
-- Performance: writing to file on every error vs buffering in memory
-- Error handling: what if we can't write to the log file itself?
+### Incremental/Differential Scans
+Save scan results and compare against previous runs:
+- `--save-state state.json`: Save full scan results
+- `--compare-with state.json`: Show what changed since last scan
+- Highlight new files, deleted files, size changes
 
-**Example usage**:
-```bash
-./diskogram --error-log errors.txt /path/to/scan
-./diskogram --error-log errors.json --json /path/to/scan
-```
+**Use case**: Track disk usage growth over time, identify what's consuming space
 
-**Related**: Could also add verbosity levels (`-v`, `-vv`) to control stderr output detail
+### Filtering Options
+Add filters to exclude/include specific files:
+- `--exclude-pattern '*.log'`: Skip files matching glob patterns
+- `--min-size 1M`: Only scan files larger than threshold
+- `--max-depth 3`: Limit directory recursion depth
+
+**Use case**: Focus on specific file types, avoid temporary files, performance optimization
