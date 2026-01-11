@@ -270,10 +270,16 @@ int main(int argc, char *argv[]) {
                     export_csv(aggregate_hist, title);
                     break;
                 case FORMAT_JSON:
-                    export_json(aggregate_hist, title);
+                    /* Use array format for consistency */
+                    export_json_array_start();
+                    export_json_array_item(aggregate_hist, title, 1);
+                    export_json_array_end();
                     break;
                 case FORMAT_XML:
-                    export_xml(aggregate_hist, title);
+                    /* Use collection format for consistency */
+                    export_xml_collection_start();
+                    export_xml_collection_item(aggregate_hist, title);
+                    export_xml_collection_end();
                     break;
                 case FORMAT_TEXT:
                 default:
@@ -314,10 +320,16 @@ int main(int argc, char *argv[]) {
                 export_csv(hist, title);
                 break;
             case FORMAT_JSON:
-                export_json(hist, title);
+                /* Use array format for consistency */
+                export_json_array_start();
+                export_json_array_item(hist, title, 1);
+                export_json_array_end();
                 break;
             case FORMAT_XML:
-                export_xml(hist, title);
+                /* Use collection format for consistency */
+                export_xml_collection_start();
+                export_xml_collection_item(hist, title);
+                export_xml_collection_end();
                 break;
             case FORMAT_TEXT:
             default:
