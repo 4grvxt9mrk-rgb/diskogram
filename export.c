@@ -2,6 +2,52 @@
 #include <stdio.h>
 #include <string.h>
 
+/* Escape a string for safe JSON output */
+static void print_json_escaped(const char *str) {
+    if (!str) {
+        printf("null");
+        return;
+    }
+
+    for (const char *p = str; *p; p++) {
+        switch (*p) {
+            case '"':  printf("\\\""); break;
+            case '\\': printf("\\\\"); break;
+            case '\b': printf("\\b"); break;
+            case '\f': printf("\\f"); break;
+            case '\n': printf("\\n"); break;
+            case '\r': printf("\\r"); break;
+            case '\t': printf("\\t"); break;
+            default:
+                if ((unsigned char)*p < 0x20) {
+                    /* Control characters */
+                    printf("\\u%04x", (unsigned char)*p);
+                } else {
+                    putchar(*p);
+                }
+                break;
+        }
+    }
+}
+
+/* Escape a string for safe XML output */
+static void print_xml_escaped(const char *str) {
+    if (!str) return;
+
+    for (const char *p = str; *p; p++) {
+        switch (*p) {
+            case '<':  printf("&lt;"); break;
+            case '>':  printf("&gt;"); break;
+            case '&':  printf("&amp;"); break;
+            case '"':  printf("&quot;"); break;
+            case '\'': printf("&apos;"); break;
+            default:
+                putchar(*p);
+                break;
+        }
+    }
+}
+
 static const char* get_interval_format(interval_t interval) {
     switch (interval) {
         case INTERVAL_HOUR:
@@ -70,7 +116,9 @@ void export_json(const histogram_t *hist, const char *title) {
 
     printf("{\n");
     printf("  \"version\": \"%s\",\n", DISKOGRAM_VERSION);
-    printf("  \"title\": \"%s\",\n", title);
+    printf("  \"title\": \"");
+    print_json_escaped(title);
+    printf("\",\n");
     printf("  \"total_bytes\": %lu,\n", (unsigned long)hist->total_bytes);
     printf("  \"total_files\": %lu,\n", (unsigned long)hist->total_files);
     printf("  \"interval\": \"");
@@ -103,7 +151,9 @@ void export_json(const histogram_t *hist, const char *title) {
     printf("  \"directories_scanned\": %lu,\n", (unsigned long)hist->directories_scanned);
     printf("  \"error_count\": %lu,\n", (unsigned long)hist->error_count);
     if (hist->error_count > 0 && hist->last_error[0] != '\0') {
-        printf("  \"last_error\": \"%s\",\n", hist->last_error);
+        printf("  \"last_error\": \"");
+        print_json_escaped(hist->last_error);
+        printf("\",\n");
     }
 
     printf("  \"buckets\": [\n");
@@ -144,7 +194,9 @@ void export_xml(const histogram_t *hist, const char *title) {
     printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     printf("<histogram>\n");
     printf("  <version>%s</version>\n", DISKOGRAM_VERSION);
-    printf("  <title>%s</title>\n", title);
+    printf("  <title>");
+    print_xml_escaped(title);
+    printf("</title>\n");
     printf("  <total_bytes>%lu</total_bytes>\n", (unsigned long)hist->total_bytes);
     printf("  <total_files>%lu</total_files>\n", (unsigned long)hist->total_files);
     printf("  <interval>");
@@ -173,7 +225,9 @@ void export_xml(const histogram_t *hist, const char *title) {
            (unsigned long)hist->directories_scanned);
     printf("  <error_count>%lu</error_count>\n", (unsigned long)hist->error_count);
     if (hist->error_count > 0 && hist->last_error[0] != '\0') {
-        printf("  <last_error>%s</last_error>\n", hist->last_error);
+        printf("  <last_error>");
+        print_xml_escaped(hist->last_error);
+        printf("</last_error>\n");
     }
 
     printf("  <buckets>\n");

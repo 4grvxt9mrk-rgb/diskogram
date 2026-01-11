@@ -25,8 +25,16 @@ static int scan_directory_win32(const char *path, grouping_mode_t mode, histogra
     HANDLE hFind;
     char search_path[MAX_PATH_LEN];
     char full_path[MAX_PATH_LEN];
+    int ret;
 
-    snprintf(search_path, sizeof(search_path), "%s\\*", path);
+    ret = snprintf(search_path, sizeof(search_path), "%s\\*", path);
+    if (ret < 0 || (size_t)ret >= sizeof(search_path)) {
+        hist->error_count++;
+        snprintf(hist->last_error, sizeof(hist->last_error),
+                 "Path too long (MAX_PATH exceeded): %s", path);
+        histogram_log_error(hist, hist->last_error);
+        return -1;
+    }
 
     hFind = FindFirstFileA(search_path, &find_data);
     if (hFind == INVALID_HANDLE_VALUE) {
@@ -45,7 +53,14 @@ static int scan_directory_win32(const char *path, grouping_mode_t mode, histogra
             continue;
         }
 
-        snprintf(full_path, sizeof(full_path), "%s\\%s", path, find_data.cFileName);
+        ret = snprintf(full_path, sizeof(full_path), "%s\\%s", path, find_data.cFileName);
+        if (ret < 0 || (size_t)ret >= sizeof(full_path)) {
+            hist->error_count++;
+            snprintf(hist->last_error, sizeof(hist->last_error),
+                     "Path too long (MAX_PATH exceeded): %s\\%s", path, find_data.cFileName);
+            histogram_log_error(hist, hist->last_error);
+            continue;
+        }
 
         if (find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
             /* Skip reparse points (symlinks, junctions, mount points) to avoid infinite loops */

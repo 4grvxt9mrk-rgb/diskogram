@@ -8,8 +8,8 @@
 /* Version information */
 #define DISKOGRAM_VERSION_MAJOR 1
 #define DISKOGRAM_VERSION_MINOR 3
-#define DISKOGRAM_VERSION_PATCH 0
-#define DISKOGRAM_VERSION "1.3.0"
+#define DISKOGRAM_VERSION_PATCH 1
+#define DISKOGRAM_VERSION "1.3.1"
 
 /* Platform detection */
 #ifdef _WIN32
