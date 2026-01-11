@@ -6,10 +6,10 @@
 #include <time.h>
 
 /* Version information */
-#define DISKOGRAM_VERSION_MAJOR 1
-#define DISKOGRAM_VERSION_MINOR 3
-#define DISKOGRAM_VERSION_PATCH 1
-#define DISKOGRAM_VERSION "1.3.1"
+#define DISKOGRAM_VERSION_MAJOR 2
+#define DISKOGRAM_VERSION_MINOR 0
+#define DISKOGRAM_VERSION_PATCH 0
+#define DISKOGRAM_VERSION "2.0.0"
 
 /* Platform detection */
 #ifdef _WIN32

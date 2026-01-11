@@ -14,6 +14,7 @@ A cross-platform command-line tool for visualizing disk space consumption over t
 - Comprehensive metadata tracking: scan timing, error reporting, directory counts
 - Robust error handling that continues scanning even when encountering permission errors
 - Detailed error logging to file or stderr with timestamps for audit trails
+- **Stdin support**: Read paths from pipes following Unix philosophy (aggregate or batch mode)
 
 ## Building
 
@@ -115,6 +116,25 @@ Display errors in real-time on stderr while scanning:
 Combine both file and stderr logging:
 ```bash
 ./diskogram --error-log full_errors.txt --log-errors-stderr /var
+```
+
+### Stdin Support (v2.0+)
+
+Aggregate multiple paths into one histogram:
+```bash
+find /var/log -type d | ./diskogram --stdin
+echo -e "/home\n/var\n/tmp" | ./diskogram --stdin --json
+```
+
+Process each path separately (batch mode):
+```bash
+find ~ -maxdepth 1 -type d | ./diskogram --stdin --batch
+cat paths.txt | ./diskogram --stdin --batch --csv
+```
+
+Use with other Unix tools:
+```bash
+locate "*.log" -0 | xargs -0 dirname | sort -u | ./diskogram --stdin --month
 ```
 
 ## Sample Output
