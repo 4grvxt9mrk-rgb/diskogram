@@ -158,17 +158,19 @@ int main(int argc, char *argv[]) {
             if (log_errors_to_stderr) histogram_set_error_stderr(aggregate_hist, 1);
         }
 
-        /* For batch mode with JSON/XML, collect all histograms first */
+        /* For batch mode with JSON/XML/CSV, collect all histograms first */
         #define MAX_BATCH_HISTOGRAMS 1024
         histogram_t *batch_histograms[MAX_BATCH_HISTOGRAMS];
         char *batch_paths[MAX_BATCH_HISTOGRAMS];
         int batch_count = 0;
 
-        /* Output collection start for JSON/XML batch mode */
+        /* Output collection start for JSON/XML/CSV batch mode */
         if (batch_mode && format == FORMAT_JSON) {
             export_json_array_start();
         } else if (batch_mode && format == FORMAT_XML) {
             export_xml_collection_start();
+        } else if (batch_mode && format == FORMAT_CSV) {
+            export_csv_batch_start(mode_name, interval);
         }
 
         while (fgets(line, sizeof(line), stdin)) {
@@ -201,29 +203,21 @@ int main(int argc, char *argv[]) {
                 char title[512];
                 snprintf(title, sizeof(title), "Disk Space by %s: %s", mode_name, line);
 
-                /* For JSON/XML, store histograms for later output */
-                if (format == FORMAT_JSON || format == FORMAT_XML) {
+                /* For JSON/XML/CSV, store histograms for later output */
+                if (format == FORMAT_JSON || format == FORMAT_XML || format == FORMAT_CSV) {
                     if (batch_count < MAX_BATCH_HISTOGRAMS) {
                         batch_histograms[batch_count] = hist;
-                        batch_paths[batch_count] = strdup(title);
+                        batch_paths[batch_count] = strdup(line); /* Store just the path, not title */
                         batch_count++;
                     } else {
                         fprintf(stderr, "Warning: too many paths, skipping: %s\n", line);
                         histogram_destroy(hist);
                     }
                 } else {
-                    /* For CSV and TEXT, output immediately */
-                    switch (format) {
-                        case FORMAT_CSV:
-                            export_csv(hist, title);
-                            break;
-                        case FORMAT_TEXT:
-                        default:
-                            display_histogram(hist, title);
-                            break;
-                    }
+                    /* For TEXT, output immediately */
+                    display_histogram(hist, title);
 
-                    if (format == FORMAT_TEXT && path_count > 1) {
+                    if (path_count > 1) {
                         printf("\n");
                     }
 
@@ -238,13 +232,22 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        /* Output collected JSON/XML batch histograms */
-        if (batch_mode && (format == FORMAT_JSON || format == FORMAT_XML)) {
+        /* Output collected JSON/XML/CSV batch histograms */
+        if (batch_mode && (format == FORMAT_JSON || format == FORMAT_XML || format == FORMAT_CSV)) {
             for (int i = 0; i < batch_count; i++) {
                 if (format == FORMAT_JSON) {
-                    export_json_array_item(batch_histograms[i], batch_paths[i], (i == batch_count - 1));
-                } else {
-                    export_xml_collection_item(batch_histograms[i], batch_paths[i]);
+                    /* For JSON, reconstruct full title */
+                    char title[512];
+                    snprintf(title, sizeof(title), "Disk Space by %s: %s", mode_name, batch_paths[i]);
+                    export_json_array_item(batch_histograms[i], title, (i == batch_count - 1));
+                } else if (format == FORMAT_XML) {
+                    /* For XML, reconstruct full title */
+                    char title[512];
+                    snprintf(title, sizeof(title), "Disk Space by %s: %s", mode_name, batch_paths[i]);
+                    export_xml_collection_item(batch_histograms[i], title);
+                } else if (format == FORMAT_CSV) {
+                    /* For CSV, pass just the path */
+                    export_csv_batch_item(batch_histograms[i], batch_paths[i], interval);
                 }
                 histogram_destroy(batch_histograms[i]);
                 free(batch_paths[i]);
@@ -257,6 +260,7 @@ int main(int argc, char *argv[]) {
         } else if (batch_mode && format == FORMAT_XML) {
             export_xml_collection_end();
         }
+        /* CSV batch mode has no end marker */
 
         if (!batch_mode && aggregate_hist) {
             /* Output aggregate histogram */

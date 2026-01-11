@@ -421,3 +421,63 @@ void export_xml_collection_item(const histogram_t *hist, const char *title) {
 void export_xml_collection_end(void) {
     printf("</histograms>\n");
 }
+
+/* Batch export helpers for CSV with Path column */
+void export_csv_batch_start(const char *mode_name, interval_t interval) {
+    (void)mode_name; /* Unused - kept for future metadata */
+    (void)interval;  /* Unused - kept for future metadata */
+
+    /* Output header with Path column */
+    printf("Path,Time,Bytes,Files,Human-Readable Size\n");
+}
+
+void export_csv_batch_item(const histogram_t *hist, const char *path, interval_t interval) {
+    if (!hist || hist->bucket_count == 0) {
+        /* Skip empty histograms in batch mode */
+        return;
+    }
+
+    char time_buf[64];
+    char size_buf[64];
+    const char *format = get_interval_format(interval);
+
+    for (size_t i = 0; i < hist->bucket_count; i++) {
+        time_bucket_t *bucket = &hist->buckets[i];
+        struct tm *tm_info = localtime(&bucket->start_time);
+
+        if (tm_info) {
+            strftime(time_buf, sizeof(time_buf), format, tm_info);
+        } else {
+            snprintf(time_buf, sizeof(time_buf), "unknown");
+        }
+
+        /* CSV with Path column - need to escape path if it contains commas/quotes */
+        int needs_quoting = 0;
+        for (const char *p = path; *p; p++) {
+            if (*p == ',' || *p == '"' || *p == '\n') {
+                needs_quoting = 1;
+                break;
+            }
+        }
+
+        if (needs_quoting) {
+            printf("\"");
+            for (const char *p = path; *p; p++) {
+                if (*p == '"') {
+                    printf("\"\""); /* Escape quotes by doubling */
+                } else {
+                    putchar(*p);
+                }
+            }
+            printf("\"");
+        } else {
+            printf("%s", path);
+        }
+
+        printf(",%s,%lu,%lu,%s\n",
+               time_buf,
+               (unsigned long)bucket->total_bytes,
+               (unsigned long)bucket->file_count,
+               format_size(bucket->total_bytes, size_buf, sizeof(size_buf)));
+    }
+}
