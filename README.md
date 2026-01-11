@@ -13,6 +13,7 @@ A cross-platform command-line tool for visualizing disk space consumption over t
 - Human-readable size formatting (B, KB, MB, GB, etc.)
 - Comprehensive metadata tracking: scan timing, error reporting, directory counts
 - Robust error handling that continues scanning even when encountering permission errors
+- Detailed error logging to file or stderr with timestamps for audit trails
 
 ## Building
 
@@ -66,6 +67,10 @@ diskogram [OPTIONS] <directory>
 - `--xml` - Export as XML format
 - (default) - Display as bar graph in terminal
 
+#### Error Logging Options
+- `--error-log <file>` - Log all errors to specified file with timestamps
+- `--log-errors-stderr` - Log all errors to stderr with timestamps
+
 #### Other Options
 - `-h, --help` - Show help message
 - `--version` - Show version information
@@ -95,6 +100,21 @@ Export as CSV for import into spreadsheet:
 Generate XML for automated reporting:
 ```bash
 ./diskogram --month --xml /var/log > monthly_report.xml
+```
+
+Log all errors to a file while scanning:
+```bash
+./diskogram --error-log errors.txt /var
+```
+
+Display errors in real-time on stderr while scanning:
+```bash
+./diskogram --log-errors-stderr /var 2> errors.log
+```
+
+Combine both file and stderr logging:
+```bash
+./diskogram --error-log full_errors.txt --log-errors-stderr /var
 ```
 
 ## Sample Output
@@ -230,7 +250,32 @@ Diskogram continues scanning even when encountering errors such as permission de
 - Export formats include the last error message for troubleshooting
 - The scan completes successfully even if some directories are inaccessible
 
-This approach is particularly useful when scanning system directories or large directory trees where some paths may be restricted.
+#### Detailed Error Logging (v1.3.0+)
+For comprehensive error tracking during scans, use the error logging options:
+
+**Log to file:**
+```bash
+./diskogram --error-log errors.txt /var
+```
+Creates a timestamped log file with all errors encountered:
+```
+[2026-01-11 16:22:06] Cannot open directory: /var/install
+[2026-01-11 16:22:06] Cannot open directory: /var/ma
+[2026-01-11 16:22:06] Cannot open directory: /var/spool/mqueue
+```
+
+**Log to stderr:**
+```bash
+./diskogram --log-errors-stderr /var
+```
+Displays errors in real-time on stderr with timestamps, useful for monitoring progress or redirecting to separate error logs.
+
+**Combine both methods:**
+```bash
+./diskogram --error-log full_errors.txt --log-errors-stderr /var
+```
+
+This approach is particularly useful when scanning system directories or large directory trees where some paths may be restricted, as it provides a complete audit trail of all access issues.
 
 ## Platform Notes
 

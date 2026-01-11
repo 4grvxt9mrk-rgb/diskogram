@@ -19,6 +19,9 @@ static void print_usage(const char *progname) {
     printf("  --csv           Export as CSV\n");
     printf("  --json          Export as JSON\n");
     printf("  --xml           Export as XML\n\n");
+    printf("Error Logging Options:\n");
+    printf("  --error-log <file>     Log all errors to specified file\n");
+    printf("  --log-errors-stderr    Log all errors to stderr\n\n");
     printf("Other Options:\n");
     printf("  -h, --help      Show this help message\n");
     printf("  --version       Show version information\n\n");
@@ -34,6 +37,8 @@ int main(int argc, char *argv[]) {
     const char *mode_name = "Modification Time";
     interval_t interval = INTERVAL_DAY;
     export_format_t format = FORMAT_TEXT;
+    const char *error_log_filename = NULL;
+    int log_errors_to_stderr = 0;
 
     /* Parse command-line arguments */
     for (int i = 1; i < argc; i++) {
@@ -70,6 +75,15 @@ int main(int argc, char *argv[]) {
             format = FORMAT_JSON;
         } else if (strcmp(argv[i], "--xml") == 0) {
             format = FORMAT_XML;
+        } else if (strcmp(argv[i], "--error-log") == 0) {
+            if (i + 1 >= argc) {
+                fprintf(stderr, "Error: --error-log requires a filename\n");
+                print_usage(argv[0]);
+                return 1;
+            }
+            error_log_filename = argv[++i];
+        } else if (strcmp(argv[i], "--log-errors-stderr") == 0) {
+            log_errors_to_stderr = 1;
         } else if (argv[i][0] == '-') {
             fprintf(stderr, "Error: unknown option '%s'\n", argv[i]);
             print_usage(argv[0]);
@@ -95,6 +109,21 @@ int main(int argc, char *argv[]) {
     if (!hist) {
         fprintf(stderr, "Error: failed to create histogram\n");
         return 1;
+    }
+
+    /* Set up error logging */
+    FILE *error_log_file = NULL;
+    if (error_log_filename) {
+        error_log_file = fopen(error_log_filename, "w");
+        if (!error_log_file) {
+            fprintf(stderr, "Error: cannot open error log file '%s'\n", error_log_filename);
+            histogram_destroy(hist);
+            return 1;
+        }
+        histogram_set_error_log(hist, error_log_file);
+    }
+    if (log_errors_to_stderr) {
+        histogram_set_error_stderr(hist, 1);
     }
 
     /* Scan directory */
@@ -131,6 +160,9 @@ int main(int argc, char *argv[]) {
 
     /* Cleanup */
     histogram_destroy(hist);
+    if (error_log_file) {
+        fclose(error_log_file);
+    }
 
     return 0;
 }

@@ -33,6 +33,7 @@ static int scan_directory_win32(const char *path, grouping_mode_t mode, histogra
         hist->error_count++;
         snprintf(hist->last_error, sizeof(hist->last_error),
                  "Cannot open directory: %s", path);
+        histogram_log_error(hist, hist->last_error);
         return -1;
     }
 
@@ -93,6 +94,7 @@ static int scan_directory_posix(const char *path, grouping_mode_t mode, histogra
         hist->error_count++;
         snprintf(hist->last_error, sizeof(hist->last_error),
                  "Cannot open directory: %s", path);
+        histogram_log_error(hist, hist->last_error);
         return -1;
     }
 
@@ -111,6 +113,7 @@ static int scan_directory_posix(const char *path, grouping_mode_t mode, histogra
             hist->error_count++;
             snprintf(hist->last_error, sizeof(hist->last_error),
                      "Cannot stat: %s", full_path);
+            histogram_log_error(hist, hist->last_error);
             continue;
         }
 

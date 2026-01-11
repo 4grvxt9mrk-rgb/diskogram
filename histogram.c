@@ -77,6 +77,10 @@ histogram_t* histogram_create(interval_t interval) {
     hist->directories_scanned = 0;
     hist->last_error[0] = '\0';
 
+    /* Initialize error logging */
+    hist->error_log_file = NULL;
+    hist->log_errors_to_stderr = 0;
+
     return hist;
 }
 
@@ -133,4 +137,39 @@ void histogram_finalize(histogram_t *hist) {
 
     /* Sort buckets by time */
     qsort(hist->buckets, hist->bucket_count, sizeof(time_bucket_t), compare_buckets);
+}
+
+void histogram_set_error_log(histogram_t *hist, FILE *log_file) {
+    if (!hist) return;
+    hist->error_log_file = log_file;
+}
+
+void histogram_set_error_stderr(histogram_t *hist, int enabled) {
+    if (!hist) return;
+    hist->log_errors_to_stderr = enabled;
+}
+
+void histogram_log_error(histogram_t *hist, const char *error_msg) {
+    if (!hist || !error_msg) return;
+
+    /* Get current timestamp */
+    time_t now = time(NULL);
+    char time_buf[64];
+    struct tm *tm_info = localtime(&now);
+    if (tm_info) {
+        strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", tm_info);
+    } else {
+        snprintf(time_buf, sizeof(time_buf), "unknown time");
+    }
+
+    /* Log to file if enabled */
+    if (hist->error_log_file) {
+        fprintf(hist->error_log_file, "[%s] %s\n", time_buf, error_msg);
+        fflush(hist->error_log_file);
+    }
+
+    /* Log to stderr if enabled */
+    if (hist->log_errors_to_stderr) {
+        fprintf(stderr, "[%s] ERROR: %s\n", time_buf, error_msg);
+    }
 }
