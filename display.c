@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <inttypes.h>
 
 #define BAR_WIDTH 50
 #define BLOCK_CHAR "#"
@@ -17,7 +18,7 @@ const char* format_size(uint64_t bytes, char *buf, size_t bufsize) {
     }
 
     if (unit_idx == 0) {
-        snprintf(buf, bufsize, "%lu B", (unsigned long)bytes);
+        snprintf(buf, bufsize, "%" PRIu64 " B", bytes);
     } else {
         snprintf(buf, bufsize, "%.2f %s", size, units[unit_idx]);
     }
@@ -73,16 +74,16 @@ void display_histogram(const histogram_t *hist, const char *title) {
     char time_buf[64];
 
     printf("\n%s\n", title);
-    printf("Total: %s in %lu files",
+    printf("Total: %s in %" PRIu64 " files",
            format_size(hist->total_bytes, size_buf, sizeof(size_buf)),
-           (unsigned long)hist->total_files);
-    printf(" (%lu directories scanned)\n",
-           (unsigned long)hist->directories_scanned);
+           hist->total_files);
+    printf(" (%" PRIu64 " directories scanned)\n",
+           hist->directories_scanned);
 
     /* Show warnings if errors occurred */
     if (hist->error_count > 0) {
-        printf("\nWARNING: %lu error(s) occurred during scan\n",
-               (unsigned long)hist->error_count);
+        printf("\nWARNING: %" PRIu64 " error(s) occurred during scan\n",
+               hist->error_count);
         if (hist->last_error[0] != '\0') {
             printf("Last error: %s\n", hist->last_error);
         }
@@ -120,9 +121,9 @@ void display_histogram(const histogram_t *hist, const char *title) {
         }
 
         /* Print size and file count */
-        printf("  %s (%lu files)\n",
+        printf("  %s (%" PRIu64 " files)\n",
                format_size(bucket->total_bytes, size_buf, sizeof(size_buf)),
-               (unsigned long)bucket->file_count);
+               bucket->file_count);
     }
 
     printf("\n");

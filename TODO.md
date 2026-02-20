@@ -37,3 +37,22 @@ Add filters to exclude/include specific files:
 - `--max-depth 3`: Limit directory recursion depth
 
 **Use case**: Focus on specific file types, avoid temporary files, performance optimization
+
+## Issues Found
+
+### ✅ 64-bit Size Printing Incorrect on Windows (Fixed)
+~~Several outputs print `uint64_t` values with `%lu`, which is 32-bit on Windows and can overflow for sizes >4GB.~~
+
+**Fixed**: Replaced all `(unsigned long)` casts + `%lu` with `PRIu64` from `<inttypes.h>` in `display.c` and `export.c`.
+
+### JSON Batch Output Can Be Invalid If Last Histogram Is Empty
+`export_json_array_item` skips empty histograms, but `main.c` computes `is_last` based on index, so a trailing comma can be emitted.
+
+**Files**: `main.c`, `export.c`  
+**Fix**: Track printed items and only emit commas between actual items, or pre-filter non-empty histograms.
+
+### POSIX Path Truncation Not Checked
+`scan_directory_posix` uses `snprintf` without checking for truncation, which can lead to incorrect `lstat` calls and misleading errors.
+
+**File**: `scan.c`  
+**Fix**: Check `snprintf` return value and log a “path too long” error similar to the Win32 branch.

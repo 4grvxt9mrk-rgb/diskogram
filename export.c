@@ -1,6 +1,7 @@
 #include "diskogram.h"
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 
 /* Escape a string for safe JSON output */
 static void print_json_escaped(const char *str) {
@@ -77,8 +78,8 @@ void export_csv(const histogram_t *hist, const char *title) {
     printf("# Version: %s\n", DISKOGRAM_VERSION);
     printf("# Scan Duration: %ld seconds\n",
            (long)(hist->scan_end_time - hist->scan_start_time));
-    printf("# Directories Scanned: %lu\n", (unsigned long)hist->directories_scanned);
-    printf("# Errors: %lu\n", (unsigned long)hist->error_count);
+    printf("# Directories Scanned: %" PRIu64 "\n", hist->directories_scanned);
+    printf("# Errors: %" PRIu64 "\n", hist->error_count);
     if (hist->error_count > 0 && hist->last_error[0] != '\0') {
         printf("# Last Error: %s\n", hist->last_error);
     }
@@ -94,10 +95,10 @@ void export_csv(const histogram_t *hist, const char *title) {
             snprintf(time_buf, sizeof(time_buf), "unknown");
         }
 
-        printf("%s,%lu,%lu,%s\n",
+        printf("%s,%" PRIu64 ",%" PRIu64 ",%s\n",
                time_buf,
-               (unsigned long)bucket->total_bytes,
-               (unsigned long)bucket->file_count,
+               bucket->total_bytes,
+               bucket->file_count,
                format_size(bucket->total_bytes, size_buf, sizeof(size_buf)));
     }
 }
@@ -119,8 +120,8 @@ void export_json(const histogram_t *hist, const char *title) {
     printf("  \"title\": \"");
     print_json_escaped(title);
     printf("\",\n");
-    printf("  \"total_bytes\": %lu,\n", (unsigned long)hist->total_bytes);
-    printf("  \"total_files\": %lu,\n", (unsigned long)hist->total_files);
+    printf("  \"total_bytes\": %" PRIu64 ",\n", hist->total_bytes);
+    printf("  \"total_files\": %" PRIu64 ",\n", hist->total_files);
     printf("  \"interval\": \"");
     switch (hist->interval) {
         case INTERVAL_HOUR: printf("hour"); break;
@@ -148,8 +149,8 @@ void export_json(const histogram_t *hist, const char *title) {
     printf("  \"scan_end\": \"%s\",\n", end_buf);
     printf("  \"scan_duration_seconds\": %ld,\n",
            (long)(hist->scan_end_time - hist->scan_start_time));
-    printf("  \"directories_scanned\": %lu,\n", (unsigned long)hist->directories_scanned);
-    printf("  \"error_count\": %lu,\n", (unsigned long)hist->error_count);
+    printf("  \"directories_scanned\": %" PRIu64 ",\n", hist->directories_scanned);
+    printf("  \"error_count\": %" PRIu64 ",\n", hist->error_count);
     if (hist->error_count > 0 && hist->last_error[0] != '\0') {
         printf("  \"last_error\": \"");
         print_json_escaped(hist->last_error);
@@ -170,8 +171,8 @@ void export_json(const histogram_t *hist, const char *title) {
 
         printf("    {\n");
         printf("      \"time\": \"%s\",\n", time_buf);
-        printf("      \"bytes\": %lu,\n", (unsigned long)bucket->total_bytes);
-        printf("      \"files\": %lu\n", (unsigned long)bucket->file_count);
+        printf("      \"bytes\": %" PRIu64 ",\n", bucket->total_bytes);
+        printf("      \"files\": %" PRIu64 "\n", bucket->file_count);
         printf("    }%s\n", (i < hist->bucket_count - 1) ? "," : "");
     }
 
@@ -197,8 +198,8 @@ void export_xml(const histogram_t *hist, const char *title) {
     printf("  <title>");
     print_xml_escaped(title);
     printf("</title>\n");
-    printf("  <total_bytes>%lu</total_bytes>\n", (unsigned long)hist->total_bytes);
-    printf("  <total_files>%lu</total_files>\n", (unsigned long)hist->total_files);
+    printf("  <total_bytes>%" PRIu64 "</total_bytes>\n", hist->total_bytes);
+    printf("  <total_files>%" PRIu64 "</total_files>\n", hist->total_files);
     printf("  <interval>");
     switch (hist->interval) {
         case INTERVAL_HOUR: printf("hour"); break;
@@ -221,9 +222,9 @@ void export_xml(const histogram_t *hist, const char *title) {
     }
     printf("  <scan_duration_seconds>%ld</scan_duration_seconds>\n",
            (long)(hist->scan_end_time - hist->scan_start_time));
-    printf("  <directories_scanned>%lu</directories_scanned>\n",
-           (unsigned long)hist->directories_scanned);
-    printf("  <error_count>%lu</error_count>\n", (unsigned long)hist->error_count);
+    printf("  <directories_scanned>%" PRIu64 "</directories_scanned>\n",
+           hist->directories_scanned);
+    printf("  <error_count>%" PRIu64 "</error_count>\n", hist->error_count);
     if (hist->error_count > 0 && hist->last_error[0] != '\0') {
         printf("  <last_error>");
         print_xml_escaped(hist->last_error);
@@ -244,8 +245,8 @@ void export_xml(const histogram_t *hist, const char *title) {
 
         printf("    <bucket>\n");
         printf("      <time>%s</time>\n", time_buf);
-        printf("      <bytes>%lu</bytes>\n", (unsigned long)bucket->total_bytes);
-        printf("      <files>%lu</files>\n", (unsigned long)bucket->file_count);
+        printf("      <bytes>%" PRIu64 "</bytes>\n", bucket->total_bytes);
+        printf("      <files>%" PRIu64 "</files>\n", bucket->file_count);
         printf("    </bucket>\n");
     }
 
@@ -275,8 +276,8 @@ void export_json_array_item(const histogram_t *hist, const char *title, int is_l
     printf("    \"title\": \"");
     print_json_escaped(title);
     printf("\",\n");
-    printf("    \"total_bytes\": %lu,\n", (unsigned long)hist->total_bytes);
-    printf("    \"total_files\": %lu,\n", (unsigned long)hist->total_files);
+    printf("    \"total_bytes\": %" PRIu64 ",\n", hist->total_bytes);
+    printf("    \"total_files\": %" PRIu64 ",\n", hist->total_files);
     printf("    \"interval\": \"");
     switch (hist->interval) {
         case INTERVAL_HOUR: printf("hour"); break;
@@ -304,8 +305,8 @@ void export_json_array_item(const histogram_t *hist, const char *title, int is_l
     printf("    \"scan_end\": \"%s\",\n", end_buf);
     printf("    \"scan_duration_seconds\": %ld,\n",
            (long)(hist->scan_end_time - hist->scan_start_time));
-    printf("    \"directories_scanned\": %lu,\n", (unsigned long)hist->directories_scanned);
-    printf("    \"error_count\": %lu,\n", (unsigned long)hist->error_count);
+    printf("    \"directories_scanned\": %" PRIu64 ",\n", hist->directories_scanned);
+    printf("    \"error_count\": %" PRIu64 ",\n", hist->error_count);
     if (hist->error_count > 0 && hist->last_error[0] != '\0') {
         printf("    \"last_error\": \"");
         print_json_escaped(hist->last_error);
@@ -326,8 +327,8 @@ void export_json_array_item(const histogram_t *hist, const char *title, int is_l
 
         printf("      {\n");
         printf("        \"time\": \"%s\",\n", time_buf);
-        printf("        \"bytes\": %lu,\n", (unsigned long)bucket->total_bytes);
-        printf("        \"files\": %lu\n", (unsigned long)bucket->file_count);
+        printf("        \"bytes\": %" PRIu64 ",\n", bucket->total_bytes);
+        printf("        \"files\": %" PRIu64 "\n", bucket->file_count);
         printf("      }%s\n", (i < hist->bucket_count - 1) ? "," : "");
     }
 
@@ -362,8 +363,8 @@ void export_xml_collection_item(const histogram_t *hist, const char *title) {
     printf("    <title>");
     print_xml_escaped(title);
     printf("</title>\n");
-    printf("    <total_bytes>%lu</total_bytes>\n", (unsigned long)hist->total_bytes);
-    printf("    <total_files>%lu</total_files>\n", (unsigned long)hist->total_files);
+    printf("    <total_bytes>%" PRIu64 "</total_bytes>\n", hist->total_bytes);
+    printf("    <total_files>%" PRIu64 "</total_files>\n", hist->total_files);
     printf("    <interval>");
     switch (hist->interval) {
         case INTERVAL_HOUR: printf("hour"); break;
@@ -386,9 +387,9 @@ void export_xml_collection_item(const histogram_t *hist, const char *title) {
     }
     printf("    <scan_duration_seconds>%ld</scan_duration_seconds>\n",
            (long)(hist->scan_end_time - hist->scan_start_time));
-    printf("    <directories_scanned>%lu</directories_scanned>\n",
-           (unsigned long)hist->directories_scanned);
-    printf("    <error_count>%lu</error_count>\n", (unsigned long)hist->error_count);
+    printf("    <directories_scanned>%" PRIu64 "</directories_scanned>\n",
+           hist->directories_scanned);
+    printf("    <error_count>%" PRIu64 "</error_count>\n", hist->error_count);
     if (hist->error_count > 0 && hist->last_error[0] != '\0') {
         printf("    <last_error>");
         print_xml_escaped(hist->last_error);
@@ -409,8 +410,8 @@ void export_xml_collection_item(const histogram_t *hist, const char *title) {
 
         printf("      <bucket>\n");
         printf("        <time>%s</time>\n", time_buf);
-        printf("        <bytes>%lu</bytes>\n", (unsigned long)bucket->total_bytes);
-        printf("        <files>%lu</files>\n", (unsigned long)bucket->file_count);
+        printf("        <bytes>%" PRIu64 "</bytes>\n", bucket->total_bytes);
+        printf("        <files>%" PRIu64 "</files>\n", bucket->file_count);
         printf("      </bucket>\n");
     }
 
@@ -474,10 +475,10 @@ void export_csv_batch_item(const histogram_t *hist, const char *path, interval_t
             printf("%s", path);
         }
 
-        printf(",%s,%lu,%lu,%s\n",
+        printf(",%s,%" PRIu64 ",%" PRIu64 ",%s\n",
                time_buf,
-               (unsigned long)bucket->total_bytes,
-               (unsigned long)bucket->file_count,
+               bucket->total_bytes,
+               bucket->file_count,
                format_size(bucket->total_bytes, size_buf, sizeof(size_buf)));
     }
 }
