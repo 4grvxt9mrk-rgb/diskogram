@@ -20,6 +20,9 @@ static void print_usage(const char *progname) {
     printf("  --csv           Export as CSV\n");
     printf("  --json          Export as JSON\n");
     printf("  --xml           Export as XML\n\n");
+    printf("Filter Options:\n");
+    printf("  --last <N> <unit>  Only include files from the last N hours/days/months/years\n");
+    printf("  --follow-mounts    Cross filesystem boundaries (default: stay on one filesystem)\n\n");
     printf("Error Logging Options:\n");
     printf("  --error-log <file>     Log all errors to specified file\n");
     printf("  --log-errors-stderr    Log all errors to stderr\n\n");
@@ -48,6 +51,9 @@ int main(int argc, char *argv[]) {
     int log_errors_to_stderr = 0;
     int use_stdin = 0;
     int batch_mode = 0;
+    int follow_mounts = 0;
+    int filter_last_n = 0;
+    char filter_unit[16] = "";
 
     /* Parse command-line arguments */
     for (int i = 1; i < argc; i++) {
@@ -97,6 +103,35 @@ int main(int argc, char *argv[]) {
             use_stdin = 1;
         } else if (strcmp(argv[i], "--batch") == 0) {
             batch_mode = 1;
+        } else if (strcmp(argv[i], "--follow-mounts") == 0) {
+            follow_mounts = 1;
+        } else if (strcmp(argv[i], "--last") == 0) {
+            if (i + 2 >= argc) {
+                fprintf(stderr, "Error: --last requires N and a unit (hours, days, months, years)\n");
+                print_usage(argv[0]);
+                return 1;
+            }
+            filter_last_n = atoi(argv[++i]);
+            if (filter_last_n <= 0) {
+                fprintf(stderr, "Error: --last N must be a positive integer\n");
+                print_usage(argv[0]);
+                return 1;
+            }
+            const char *raw_unit = argv[++i];
+            /* Normalize to plural canonical form */
+            if (strcmp(raw_unit, "hour") == 0 || strcmp(raw_unit, "hours") == 0) {
+                snprintf(filter_unit, sizeof(filter_unit), "hours");
+            } else if (strcmp(raw_unit, "day") == 0 || strcmp(raw_unit, "days") == 0) {
+                snprintf(filter_unit, sizeof(filter_unit), "days");
+            } else if (strcmp(raw_unit, "month") == 0 || strcmp(raw_unit, "months") == 0) {
+                snprintf(filter_unit, sizeof(filter_unit), "months");
+            } else if (strcmp(raw_unit, "year") == 0 || strcmp(raw_unit, "years") == 0) {
+                snprintf(filter_unit, sizeof(filter_unit), "years");
+            } else {
+                fprintf(stderr, "Error: unknown unit '%s' (use hours, days, months, or years)\n", raw_unit);
+                print_usage(argv[0]);
+                return 1;
+            }
         } else if (argv[i][0] == '-') {
             fprintf(stderr, "Error: unknown option '%s'\n", argv[i]);
             print_usage(argv[0]);
@@ -128,6 +163,33 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    /* Compute cutoff time for --last filter */
+    time_t cutoff_time = 0;
+    if (filter_last_n > 0) {
+        time_t now = time(NULL);
+        struct tm *tm_now = localtime(&now);
+        if (!tm_now) {
+            fprintf(stderr, "Error: failed to compute cutoff time\n");
+            return 1;
+        }
+        struct tm tm_cutoff = *tm_now;
+        if (strcmp(filter_unit, "hours") == 0) {
+            tm_cutoff.tm_hour -= filter_last_n;
+        } else if (strcmp(filter_unit, "days") == 0) {
+            tm_cutoff.tm_mday -= filter_last_n;
+        } else if (strcmp(filter_unit, "months") == 0) {
+            tm_cutoff.tm_mon -= filter_last_n;
+        } else if (strcmp(filter_unit, "years") == 0) {
+            tm_cutoff.tm_year -= filter_last_n;
+        }
+        tm_cutoff.tm_isdst = -1;
+        cutoff_time = mktime(&tm_cutoff);
+        if (cutoff_time == (time_t)-1) {
+            fprintf(stderr, "Error: failed to compute cutoff time\n");
+            return 1;
+        }
+    }
+
     /* Set up error logging */
     FILE *error_log_file = NULL;
     if (error_log_filename) {
@@ -156,6 +218,8 @@ int main(int argc, char *argv[]) {
             }
             if (error_log_file) histogram_set_error_log(aggregate_hist, error_log_file);
             if (log_errors_to_stderr) histogram_set_error_stderr(aggregate_hist, 1);
+            if (cutoff_time) histogram_set_cutoff(aggregate_hist, cutoff_time, filter_last_n, filter_unit);
+            if (follow_mounts) aggregate_hist->one_file_system = 0;
         }
 
         /* For batch mode with JSON/XML/CSV, collect all histograms first */
@@ -193,6 +257,8 @@ int main(int argc, char *argv[]) {
                 }
                 if (error_log_file) histogram_set_error_log(hist, error_log_file);
                 if (log_errors_to_stderr) histogram_set_error_stderr(hist, 1);
+                if (cutoff_time) histogram_set_cutoff(hist, cutoff_time, filter_last_n, filter_unit);
+                if (follow_mounts) hist->one_file_system = 0;
 
                 if (format == FORMAT_TEXT) {
                     printf("Scanning '%s'...\n", line);
@@ -303,6 +369,8 @@ int main(int argc, char *argv[]) {
         }
         if (error_log_file) histogram_set_error_log(hist, error_log_file);
         if (log_errors_to_stderr) histogram_set_error_stderr(hist, 1);
+        if (cutoff_time) histogram_set_cutoff(hist, cutoff_time, filter_last_n, filter_unit);
+        if (follow_mounts) hist->one_file_system = 0;
 
         if (format == FORMAT_TEXT) {
             printf("Scanning '%s'...\n", target_dir);

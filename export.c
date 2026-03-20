@@ -49,6 +49,28 @@ static void print_xml_escaped(const char *str) {
     }
 }
 
+static void print_json_filter(const histogram_t *hist, const char *indent) {
+    if (hist->cutoff_time == 0) return;
+    char since_buf[64];
+    struct tm *tm_cutoff = localtime(&hist->cutoff_time);
+    if (tm_cutoff) strftime(since_buf, sizeof(since_buf), "%Y-%m-%dT%H:%M:%S", tm_cutoff);
+    else snprintf(since_buf, sizeof(since_buf), "unknown");
+    printf("%s\"filter_last_n\": %d,\n", indent, hist->filter_last_n);
+    printf("%s\"filter_unit\": \"%s\",\n", indent, hist->filter_unit);
+    printf("%s\"filter_since\": \"%s\",\n", indent, since_buf);
+}
+
+static void print_xml_filter(const histogram_t *hist, const char *indent) {
+    if (hist->cutoff_time == 0) return;
+    char since_buf[64];
+    struct tm *tm_cutoff = localtime(&hist->cutoff_time);
+    if (tm_cutoff) strftime(since_buf, sizeof(since_buf), "%Y-%m-%dT%H:%M:%S", tm_cutoff);
+    else snprintf(since_buf, sizeof(since_buf), "unknown");
+    printf("%s<filter_last_n>%d</filter_last_n>\n", indent, hist->filter_last_n);
+    printf("%s<filter_unit>%s</filter_unit>\n", indent, hist->filter_unit);
+    printf("%s<filter_since>%s</filter_since>\n", indent, since_buf);
+}
+
 static const char* get_interval_format(interval_t interval) {
     switch (interval) {
         case INTERVAL_HOUR:
@@ -82,6 +104,19 @@ void export_csv(const histogram_t *hist, const char *title) {
     printf("# Errors: %" PRIu64 "\n", hist->error_count);
     if (hist->error_count > 0 && hist->last_error[0] != '\0') {
         printf("# Last Error: %s\n", hist->last_error);
+    }
+    if (hist->cutoff_time > 0) {
+        char since_buf[64];
+        struct tm *tm_cutoff = localtime(&hist->cutoff_time);
+        if (tm_cutoff) strftime(since_buf, sizeof(since_buf), "%Y-%m-%d", tm_cutoff);
+        else snprintf(since_buf, sizeof(since_buf), "unknown");
+        char unit_display[16];
+        snprintf(unit_display, sizeof(unit_display), "%s", hist->filter_unit);
+        if (hist->filter_last_n == 1) {
+            size_t len = strlen(unit_display);
+            if (len > 1 && unit_display[len - 1] == 's') unit_display[len - 1] = '\0';
+        }
+        printf("# Filter: last %d %s (since %s)\n", hist->filter_last_n, unit_display, since_buf);
     }
     printf("Time,Bytes,Files,Human-Readable Size\n");
 
@@ -156,6 +191,7 @@ void export_json(const histogram_t *hist, const char *title) {
         print_json_escaped(hist->last_error);
         printf("\",\n");
     }
+    print_json_filter(hist, "  ");
 
     printf("  \"buckets\": [\n");
 
@@ -230,6 +266,7 @@ void export_xml(const histogram_t *hist, const char *title) {
         print_xml_escaped(hist->last_error);
         printf("</last_error>\n");
     }
+    print_xml_filter(hist, "  ");
 
     printf("  <buckets>\n");
 
@@ -312,6 +349,7 @@ void export_json_array_item(const histogram_t *hist, const char *title, int is_l
         print_json_escaped(hist->last_error);
         printf("\",\n");
     }
+    print_json_filter(hist, "    ");
 
     printf("    \"buckets\": [\n");
 
@@ -395,6 +433,7 @@ void export_xml_collection_item(const histogram_t *hist, const char *title) {
         print_xml_escaped(hist->last_error);
         printf("</last_error>\n");
     }
+    print_xml_filter(hist, "    ");
 
     printf("    <buckets>\n");
 

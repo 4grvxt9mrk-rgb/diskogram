@@ -7,9 +7,9 @@
 
 /* Version information */
 #define DISKOGRAM_VERSION_MAJOR 2
-#define DISKOGRAM_VERSION_MINOR 2
+#define DISKOGRAM_VERSION_MINOR 4
 #define DISKOGRAM_VERSION_PATCH 0
-#define DISKOGRAM_VERSION "2.2.0"
+#define DISKOGRAM_VERSION "2.4.0"
 
 /* Platform detection */
 #ifdef _WIN32
@@ -78,6 +78,14 @@ typedef struct {
     /* Error logging */
     FILE *error_log_file;
     int log_errors_to_stderr;
+
+    /* Time filter (--last N unit) */
+    time_t cutoff_time;     /* 0 = no filter */
+    int filter_last_n;
+    char filter_unit[16];   /* "hours", "days", "months", "years" */
+
+    /* Filesystem boundary (--follow-mounts to disable) */
+    int one_file_system;    /* 1 = stay on one filesystem (default), 0 = cross mounts */
 } histogram_t;
 
 /* Function declarations */
@@ -93,6 +101,7 @@ void histogram_finalize(histogram_t *hist);
 void histogram_set_error_log(histogram_t *hist, FILE *log_file);
 void histogram_set_error_stderr(histogram_t *hist, int enabled);
 void histogram_log_error(histogram_t *hist, const char *error_msg);
+void histogram_set_cutoff(histogram_t *hist, time_t cutoff, int n, const char *unit);
 
 /* Display and export */
 void display_histogram(const histogram_t *hist, const char *title);

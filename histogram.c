@@ -81,6 +81,14 @@ histogram_t* histogram_create(interval_t interval) {
     hist->error_log_file = NULL;
     hist->log_errors_to_stderr = 0;
 
+    /* Initialize time filter */
+    hist->cutoff_time = 0;
+    hist->filter_last_n = 0;
+    hist->filter_unit[0] = '\0';
+
+    /* Stay on one filesystem by default */
+    hist->one_file_system = 1;
+
     return hist;
 }
 
@@ -91,6 +99,11 @@ void histogram_destroy(histogram_t *hist) {
 }
 
 void histogram_add_file(histogram_t *hist, time_t file_time, uint64_t size) {
+    /* Apply time filter if set */
+    if (hist->cutoff_time > 0 && file_time < hist->cutoff_time) {
+        return;
+    }
+
     time_t bucket_time = normalize_time(file_time, hist->interval);
 
     /* Find existing bucket or create new one */
@@ -147,6 +160,13 @@ void histogram_set_error_log(histogram_t *hist, FILE *log_file) {
 void histogram_set_error_stderr(histogram_t *hist, int enabled) {
     if (!hist) return;
     hist->log_errors_to_stderr = enabled;
+}
+
+void histogram_set_cutoff(histogram_t *hist, time_t cutoff, int n, const char *unit) {
+    if (!hist) return;
+    hist->cutoff_time = cutoff;
+    hist->filter_last_n = n;
+    snprintf(hist->filter_unit, sizeof(hist->filter_unit), "%s", unit);
 }
 
 void histogram_log_error(histogram_t *hist, const char *error_msg) {

@@ -74,6 +74,23 @@ void display_histogram(const histogram_t *hist, const char *title) {
     char time_buf[64];
 
     printf("\n%s\n", title);
+    if (hist->cutoff_time > 0) {
+        char since_buf[64];
+        struct tm *tm_cutoff = localtime(&hist->cutoff_time);
+        if (tm_cutoff) {
+            strftime(since_buf, sizeof(since_buf), "%Y-%m-%d", tm_cutoff);
+        } else {
+            snprintf(since_buf, sizeof(since_buf), "unknown");
+        }
+        /* Strip trailing 's' for singular (n==1) */
+        char unit_display[16];
+        snprintf(unit_display, sizeof(unit_display), "%s", hist->filter_unit);
+        if (hist->filter_last_n == 1) {
+            size_t len = strlen(unit_display);
+            if (len > 1 && unit_display[len - 1] == 's') unit_display[len - 1] = '\0';
+        }
+        printf("Window: last %d %s (since %s)\n", hist->filter_last_n, unit_display, since_buf);
+    }
     printf("Total: %s in %" PRIu64 " files",
            format_size(hist->total_bytes, size_buf, sizeof(size_buf)),
            hist->total_files);

@@ -12,6 +12,19 @@
 - Both file and stderr logging can be used simultaneously
 - Works across all platforms (macOS, Linux, FreeBSD, Windows)
 
+## Completed Features (cont.)
+
+### ✅ Time Window Filter (Implemented in v2.3.0)
+Add `--last N unit` to restrict the histogram to files modified/created/accessed within the last N hours/days/months/years.
+
+**Status**: Implemented with `--last <N> <unit>` flag (units: hours, days, months, years; singular forms accepted)
+- Cutoff computed with `mktime` arithmetic for correct calendar math (months, years roll back properly)
+- Filter applied in `histogram_add_file` — old files are skipped entirely, not just hidden
+- Text output shows `Window: last N unit (since YYYY-MM-DD)` line
+- JSON/XML include `filter_last_n`, `filter_unit`, `filter_since` fields
+- CSV includes `# Filter: last N unit (since YYYY-MM-DD)` comment header
+- Works with all time modes (mtime, ctime, atime), intervals, and stdin/batch modes
+
 ## Future Feature Ideas
 
 ### Verbosity Levels

@@ -98,7 +98,7 @@ static int scan_directory_win32(const char *path, grouping_mode_t mode, histogra
 
 #else
 
-static int scan_directory_posix(const char *path, grouping_mode_t mode, histogram_t *hist) {
+static int scan_directory_posix(const char *path, grouping_mode_t mode, histogram_t *hist, dev_t root_dev) {
     DIR *dir;
     struct dirent *entry;
     struct stat st;
@@ -133,7 +133,23 @@ static int scan_directory_posix(const char *path, grouping_mode_t mode, histogra
         }
 
         if (S_ISDIR(st.st_mode)) {
-            scan_directory_posix(full_path, mode, hist);
+            if (hist->one_file_system) {
+                if (st.st_dev != root_dev) {
+                    /* Different block device — skip */
+                    continue;
+                }
+#ifdef __APPLE__
+                /* macOS FileProvider directories (ShellFish, CloudMounter, etc.)
+                 * share the same st_dev as the host APFS volume but use nlink=65535
+                 * (UINT16_MAX) as a sentinel meaning "synthetic, link count N/A".
+                 * opendir() on these blocks waiting for a network connection.
+                 * Detecting this via lstat is safe and instantaneous. */
+                if (st.st_nlink == 65535) {
+                    continue;
+                }
+#endif
+            }
+            scan_directory_posix(full_path, mode, hist, root_dev);
         } else if (S_ISREG(st.st_mode)) {
             time_t file_time;
             switch (mode) {
@@ -168,6 +184,14 @@ int scan_directory(const char *path, grouping_mode_t mode, histogram_t *hist) {
 #ifdef _WIN32
     return scan_directory_win32(path, mode, hist);
 #else
-    return scan_directory_posix(path, mode, hist);
+    struct stat root_st;
+    if (lstat(path, &root_st) != 0) {
+        hist->error_count++;
+        snprintf(hist->last_error, sizeof(hist->last_error),
+                 "Cannot stat root path: %s", path);
+        histogram_log_error(hist, hist->last_error);
+        return -1;
+    }
+    return scan_directory_posix(path, mode, hist, root_st.st_dev);
 #endif
 }
