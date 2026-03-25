@@ -359,11 +359,9 @@ Platform-specific code is isolated with `#ifdef _WIN32` / `#else` preprocessor b
 
 ## License
 
-This software is free to use, modify, and distribute for any purpose, including commercial use, with attribution required.
+MIT License — see the [LICENSE](LICENSE) file for full details.
 
-**Required attribution:** "diskogram" by Jethro Rose, with Claude (Anthropic)
-
-See the [LICENSE](LICENSE) file for full details.
+Copyright (c) 2026 Jethro Rose
 
 ## Contributing
 
