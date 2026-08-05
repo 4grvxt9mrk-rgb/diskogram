@@ -68,14 +68,22 @@ static void print_xml_escaped(const char *str) {
     if (!str) return;
 
     for (const char *p = str; *p; p++) {
-        switch (*p) {
+        unsigned char c = (unsigned char)*p;
+        switch (c) {
             case '<':  printf("&lt;"); break;
             case '>':  printf("&gt;"); break;
             case '&':  printf("&amp;"); break;
             case '"':  printf("&quot;"); break;
             case '\'': printf("&apos;"); break;
             default:
-                putchar(*p);
+                /* XML 1.0 permits only #x9, #xA, #xD among the C0 controls;
+                 * the rest are illegal even as numeric character references, so
+                 * replace them with U+FFFD rather than emit invalid XML. */
+                if (c < 0x20 && c != '\t' && c != '\n' && c != '\r') {
+                    printf("\xEF\xBF\xBD");  /* U+FFFD REPLACEMENT CHARACTER */
+                } else {
+                    putchar(c);
+                }
                 break;
         }
     }

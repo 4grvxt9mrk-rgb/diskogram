@@ -249,14 +249,19 @@ void histogram_log_error(histogram_t *hist, const char *error_msg) {
         snprintf(time_buf, sizeof(time_buf), "unknown time");
     }
 
-    /* Log to file if enabled */
+    /* Log to file if enabled (escape control bytes; the log may be viewed
+     * later in a terminal). */
     if (hist->error_log_file) {
-        fprintf(hist->error_log_file, "[%s] %s\n", time_buf, error_msg);
+        fprintf(hist->error_log_file, "[%s] ", time_buf);
+        print_terminal_safe(error_msg, hist->error_log_file);
+        fputc('\n', hist->error_log_file);
         fflush(hist->error_log_file);
     }
 
     /* Log to stderr if enabled */
     if (hist->log_errors_to_stderr) {
-        fprintf(stderr, "[%s] ERROR: %s\n", time_buf, error_msg);
+        fprintf(stderr, "[%s] ERROR: ", time_buf);
+        print_terminal_safe(error_msg, stderr);
+        fputc('\n', stderr);
     }
 }

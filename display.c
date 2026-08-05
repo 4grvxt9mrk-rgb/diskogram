@@ -7,6 +7,17 @@
 #define BAR_WIDTH 50
 #define BLOCK_CHAR "#"
 
+void print_terminal_safe(const char *s, FILE *stream) {
+    if (!s) return;
+    for (const unsigned char *p = (const unsigned char *)s; *p; p++) {
+        if (*p < 0x20 || *p == 0x7f) {
+            fprintf(stream, "\\x%02x", *p);
+        } else {
+            fputc(*p, stream);
+        }
+    }
+}
+
 const char* format_size(uint64_t bytes, char *buf, size_t bufsize) {
     const char *units[] = {"B", "KB", "MB", "GB", "TB", "PB"};
     int unit_idx = 0;
@@ -73,7 +84,9 @@ void display_histogram(const histogram_t *hist, const char *title) {
     char size_buf[64];
     char time_buf[64];
 
-    printf("\n%s\n", title);
+    printf("\n");
+    print_terminal_safe(title, stdout);
+    printf("\n");
     if (hist->cutoff_time > 0) {
         char since_buf[64];
         struct tm *tm_cutoff = localtime(&hist->cutoff_time);
@@ -102,7 +115,9 @@ void display_histogram(const histogram_t *hist, const char *title) {
         printf("\nWARNING: %" PRIu64 " error(s) occurred during scan\n",
                hist->error_count);
         if (hist->last_error[0] != '\0') {
-            printf("Last error: %s\n", hist->last_error);
+            printf("Last error: ");
+            print_terminal_safe(hist->last_error, stdout);
+            printf("\n");
         }
         printf("Results may be incomplete.\n");
     }

@@ -4,7 +4,7 @@ Last reviewed: 2026-07-23
 
 ## Remediation Status
 
-Fixes applied 2026-08-05 (commit `1adacde`):
+**Round 1** — 2026-08-05 (commit `1adacde`):
 
 - ✅ **Fixed** — Quadratic CPU Consumption During Aggregation (hash index)
 - ✅ **Fixed** — CSV Formula Injection (apostrophe prefix + RFC 4180 quoting)
@@ -13,12 +13,22 @@ Fixes applied 2026-08-05 (commit `1adacde`):
   growth, checked `strdup`, allocation failure propagated to exit status; byte/counter
   wraparound and unbounded recursion still open)
 
-Verified warning-free under `-Wall -Wextra -std=c99` and clean under AddressSanitizer
-and UBSan across the hash, batch, and aggregate paths.
+**Round 2** — 2026-08-05:
 
-Still open: Terminal Escape-Sequence Injection, Path-Based Traversal Race,
-Invalid XML/Encoding Output, Error-Log Symlink/Truncation, and the input-validation
-and correctness items below.
+- ✅ **Fixed** — Terminal Escape-Sequence Injection (`print_terminal_safe()` escapes
+  control/DEL bytes for all attacker-controlled paths and error messages)
+- ⚠️ **Partially fixed** — Invalid XML/Encoding Output (C0 control bytes illegal in
+  XML 1.0 now replaced with U+FFFD; full invalid-UTF-8 validation still open)
+- ✅ **Fixed** — `atoi()` partial numeric input (now `strtol` with full validation)
+- ✅ **Fixed** — Batch JSON trailing comma (commas keyed to last non-empty item)
+- ✅ **Fixed** — Stdin line truncation / CRLF (overlong lines rejected; `\r` stripped)
+
+Verified warning-free under `-Wall -Wextra -std=c99` and clean under AddressSanitizer
+and UBSan across the hash, batch, aggregate, and structured-export paths.
+
+Still open: Path-Based Traversal Race (#4), Error-Log Symlink/Truncation (#7),
+full UTF-8 validation, unbounded recursion + counter wraparound (#8 remainder),
+hour/day UTC-boundary accuracy, and empty-results-hide-errors.
 
 ## Scope and Threat Model
 
@@ -45,7 +55,7 @@ availability, output safety, traversal boundaries, and result integrity.
 
 ## Security Findings
 
-### Medium: Terminal Escape-Sequence Injection
+### ✅ FIXED — Medium: Terminal Escape-Sequence Injection
 
 Paths and filesystem error messages are printed directly to the terminal.
 Attacker-controlled names can contain ANSI or OSC control sequences capable of
@@ -130,7 +140,7 @@ Recommended remediation on POSIX:
 - validate the device and inode of the opened object;
 - track visited `(st_dev, st_ino)` directory pairs to prevent cycles.
 
-### Low: Invalid XML and Encoding Output
+### ⚠️ PARTIALLY FIXED — Low: Invalid XML and Encoding Output
 
 `print_xml_escaped()` escapes XML markup characters but emits other bytes
 unchanged. XML 1.0 prohibits several control characters, including byte
@@ -215,7 +225,7 @@ Recommended remediation:
 These issues should be fixed, but they are not currently classified as
 security vulnerabilities on their own.
 
-### `atoi()` Accepts Partially Numeric Input
+### ✅ FIXED — `atoi()` Accepts Partially Numeric Input
 
 `--last 12x days` is silently accepted as 12 days, while overflow behavior is
 not reliably diagnosable.
@@ -249,7 +259,7 @@ the result is formatted in local time. In non-UTC time zones, particularly
 around daylight-saving transitions, displayed buckets may not align with local
 hour or midnight boundaries. This affects result accuracy rather than security.
 
-### Batch JSON Can Contain a Trailing Comma
+### ✅ FIXED — Batch JSON Can Contain a Trailing Comma
 
 Empty histograms are skipped by `export_json_array_item()`, but `main.c`
 decides whether an item is last using the unfiltered array index. If the final
@@ -266,7 +276,7 @@ failed or filtered scan can therefore suppress useful scan metadata and error
 details. Structured formats should still emit a valid empty result with its
 error count and scan metadata.
 
-### Stdin Lines Can Be Truncated
+### ✅ FIXED — Stdin Lines Can Be Truncated
 
 `fgets()` reads at most `MAX_PATH_LEN - 1` bytes. An overlong input line is
 processed as multiple paths rather than rejected as one overlong path.

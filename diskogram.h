@@ -131,4 +131,10 @@ void export_csv_batch_item(const histogram_t *hist, const char *path, interval_t
 const char* format_size(uint64_t bytes, char *buf, size_t bufsize);
 const char* format_time(time_t t, char *buf, size_t bufsize);
 
+/* Print a string to a terminal/log stream with control and DEL bytes rendered
+ * as visible \xNN escapes, neutralizing ANSI/OSC escape-sequence injection from
+ * attacker-controlled paths and error messages. Printable ASCII and UTF-8
+ * (bytes >= 0x80) are passed through unchanged. */
+void print_terminal_safe(const char *s, FILE *stream);
+
 #endif /* DISKOGRAM_H */

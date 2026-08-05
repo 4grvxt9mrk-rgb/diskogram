@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 static void print_usage(const char *progname) {
     printf("Usage: %s [OPTIONS] <directory>\n", progname);
@@ -111,12 +112,17 @@ int main(int argc, char *argv[]) {
                 print_usage(argv[0]);
                 return 1;
             }
-            filter_last_n = atoi(argv[++i]);
-            if (filter_last_n <= 0) {
-                fprintf(stderr, "Error: --last N must be a positive integer\n");
+            const char *n_arg = argv[++i];
+            char *endptr = NULL;
+            errno = 0;
+            long n_val = strtol(n_arg, &endptr, 10);
+            if (endptr == n_arg || *endptr != '\0' || errno == ERANGE ||
+                n_val <= 0 || n_val > 100000) {
+                fprintf(stderr, "Error: --last N must be a positive integer (1-100000)\n");
                 print_usage(argv[0]);
                 return 1;
             }
+            filter_last_n = (int)n_val;
             const char *raw_unit = argv[++i];
             /* Normalize to plural canonical form */
             if (strcmp(raw_unit, "hour") == 0 || strcmp(raw_unit, "hours") == 0) {
@@ -238,10 +244,19 @@ int main(int argc, char *argv[]) {
         }
 
         while (fgets(line, sizeof(line), stdin)) {
-            /* Remove trailing newline */
             size_t len = strlen(line);
-            if (len > 0 && line[len-1] == '\n') {
-                line[len-1] = '\0';
+            /* Reject an overlong line (buffer filled with no terminating
+             * newline) rather than silently splitting it into two paths:
+             * discard the remainder of the line and skip it. */
+            if (len == sizeof(line) - 1 && line[len-1] != '\n') {
+                int ch;
+                while ((ch = getchar()) != '\n' && ch != EOF) { /* discard */ }
+                fprintf(stderr, "Error: input path too long, skipping\n");
+                continue;
+            }
+            /* Strip trailing newline and carriage return (CRLF-safe) */
+            while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) {
+                line[--len] = '\0';
             }
             /* Skip empty lines */
             if (line[0] == '\0') continue;
@@ -252,7 +267,9 @@ int main(int argc, char *argv[]) {
                 /* Batch mode: separate histogram per path */
                 histogram_t *hist = histogram_create(interval);
                 if (!hist) {
-                    fprintf(stderr, "Error: failed to create histogram for path: %s\n", line);
+                    fprintf(stderr, "Error: failed to create histogram for path: ");
+                    print_terminal_safe(line, stderr);
+                    fputc('\n', stderr);
                     continue;
                 }
                 if (error_log_file) histogram_set_error_log(hist, error_log_file);
@@ -261,7 +278,9 @@ int main(int argc, char *argv[]) {
                 if (follow_mounts) hist->one_file_system = 0;
 
                 if (format == FORMAT_TEXT) {
-                    printf("Scanning '%s'...\n", line);
+                    printf("Scanning '");
+                    print_terminal_safe(line, stdout);
+                    printf("'...\n");
                 }
                 scan_directory(line, mode, hist);
                 histogram_finalize(hist);
@@ -274,7 +293,9 @@ int main(int argc, char *argv[]) {
                     if (batch_count < MAX_BATCH_HISTOGRAMS) {
                         char *path_copy = strdup(line); /* Store just the path, not title */
                         if (!path_copy) {
-                            fprintf(stderr, "Error: out of memory storing path: %s\n", line);
+                            fprintf(stderr, "Error: out of memory storing path: ");
+                            print_terminal_safe(line, stderr);
+                            fputc('\n', stderr);
                             histogram_destroy(hist);
                             exit_code = 1;
                             continue;
@@ -284,7 +305,9 @@ int main(int argc, char *argv[]) {
                         batch_paths[batch_count] = path_copy;
                         batch_count++;
                     } else {
-                        fprintf(stderr, "Warning: too many paths, skipping: %s\n", line);
+                        fprintf(stderr, "Warning: too many paths, skipping: ");
+                        print_terminal_safe(line, stderr);
+                        fprintf(stderr, "\n");
                         histogram_destroy(hist);
                     }
                 } else {
@@ -301,7 +324,9 @@ int main(int argc, char *argv[]) {
             } else {
                 /* Aggregate mode: accumulate into one histogram */
                 if (format == FORMAT_TEXT) {
-                    printf("Scanning '%s'...\n", line);
+                    printf("Scanning '");
+                    print_terminal_safe(line, stdout);
+                    printf("'...\n");
                 }
                 scan_directory(line, mode, aggregate_hist);
             }
@@ -309,12 +334,19 @@ int main(int argc, char *argv[]) {
 
         /* Output collected JSON/XML/CSV batch histograms */
         if (batch_mode && (format == FORMAT_JSON || format == FORMAT_XML || format == FORMAT_CSV)) {
+            /* JSON commas must fall between actually-emitted items. Empty
+             * histograms are skipped by export_json_array_item(), so base
+             * "is last" on the last non-empty item, not the array index. */
+            int last_nonempty = -1;
+            for (int i = 0; i < batch_count; i++) {
+                if (batch_histograms[i]->bucket_count > 0) last_nonempty = i;
+            }
             for (int i = 0; i < batch_count; i++) {
                 if (format == FORMAT_JSON) {
                     /* For JSON, reconstruct full title */
                     char title[512];
                     snprintf(title, sizeof(title), "Disk Space by %s: %s", mode_name, batch_paths[i]);
-                    export_json_array_item(batch_histograms[i], title, (i == batch_count - 1));
+                    export_json_array_item(batch_histograms[i], title, (i == last_nonempty));
                 } else if (format == FORMAT_XML) {
                     /* For XML, reconstruct full title */
                     char title[512];
@@ -383,7 +415,9 @@ int main(int argc, char *argv[]) {
         if (follow_mounts) hist->one_file_system = 0;
 
         if (format == FORMAT_TEXT) {
-            printf("Scanning '%s'...\n", target_dir);
+            printf("Scanning '");
+            print_terminal_safe(target_dir, stdout);
+            printf("'...\n");
         }
         if (scan_directory(target_dir, mode, hist) != 0) {
             fprintf(stderr, "Error: failed to scan directory\n");
