@@ -5,8 +5,6 @@
 # Executables
 diskogram
 diskogram.exe
-spacetime
-spacetime.exe
 
 # Editor files
 *.swp

@@ -1,5 +1,5 @@
-#ifndef SPACETIME_H
-#define SPACETIME_H
+#ifndef DISKOGRAM_H
+#define DISKOGRAM_H
 
 #include <stdint.h>
 #include <stdio.h>
@@ -123,4 +123,4 @@ void export_csv_batch_item(const histogram_t *hist, const char *path, interval_t
 const char* format_size(uint64_t bytes, char *buf, size_t bufsize);
 const char* format_time(time_t t, char *buf, size_t bufsize);
 
-#endif /* SPACETIME_H */
+#endif /* DISKOGRAM_H */
