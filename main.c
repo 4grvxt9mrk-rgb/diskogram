@@ -272,8 +272,16 @@ int main(int argc, char *argv[]) {
                 /* For JSON/XML/CSV, store histograms for later output */
                 if (format == FORMAT_JSON || format == FORMAT_XML || format == FORMAT_CSV) {
                     if (batch_count < MAX_BATCH_HISTOGRAMS) {
+                        char *path_copy = strdup(line); /* Store just the path, not title */
+                        if (!path_copy) {
+                            fprintf(stderr, "Error: out of memory storing path: %s\n", line);
+                            histogram_destroy(hist);
+                            exit_code = 1;
+                            continue;
+                        }
+                        if (hist->alloc_failed) exit_code = 1;
                         batch_histograms[batch_count] = hist;
-                        batch_paths[batch_count] = strdup(line); /* Store just the path, not title */
+                        batch_paths[batch_count] = path_copy;
                         batch_count++;
                     } else {
                         fprintf(stderr, "Warning: too many paths, skipping: %s\n", line);
@@ -281,6 +289,7 @@ int main(int argc, char *argv[]) {
                     }
                 } else {
                     /* For TEXT, output immediately */
+                    if (hist->alloc_failed) exit_code = 1;
                     display_histogram(hist, title);
 
                     if (path_count > 1) {
@@ -331,6 +340,7 @@ int main(int argc, char *argv[]) {
         if (!batch_mode && aggregate_hist) {
             /* Output aggregate histogram */
             histogram_finalize(aggregate_hist);
+            if (aggregate_hist->alloc_failed) exit_code = 1;
 
             char title[256];
             snprintf(title, sizeof(title), "Disk Space by %s: %d paths", mode_name, path_count);
@@ -383,6 +393,7 @@ int main(int argc, char *argv[]) {
         }
 
         histogram_finalize(hist);
+        if (hist->alloc_failed) exit_code = 1;
 
         char title[256];
         snprintf(title, sizeof(title), "Disk Space by %s: %s", mode_name, target_dir);

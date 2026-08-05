@@ -64,6 +64,14 @@ typedef struct {
     time_bucket_t *buckets;
     size_t bucket_count;
     size_t bucket_capacity;
+
+    /* Open-addressing hash index for O(1) bucket lookup during aggregation.
+     * Maps a normalized start_time to (bucket array index + 1); 0 = empty slot.
+     * index_capacity is always a power of two. Unused after finalize. */
+    size_t *index_slots;
+    size_t index_capacity;
+    int alloc_failed;       /* set if a bucket/index allocation failed mid-scan */
+
     uint64_t total_bytes;
     uint64_t total_files;
     interval_t interval;

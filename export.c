@@ -3,6 +3,38 @@
 #include <string.h>
 #include <inttypes.h>
 
+/* Write a CSV field with RFC 4180 quoting and spreadsheet formula-injection
+ * neutralization. A field beginning with '=', '+', '-', '@', TAB, or CR can be
+ * interpreted as a formula by spreadsheet software; such fields are prefixed
+ * with a single apostrophe so they import as literal text. */
+static void print_csv_field(const char *s) {
+    if (!s) return;
+
+    int needs_prefix = (s[0] == '=' || s[0] == '+' || s[0] == '-' ||
+                        s[0] == '@' || s[0] == '\t' || s[0] == '\r');
+
+    int needs_quoting = 0;
+    for (const char *p = s; *p; p++) {
+        if (*p == ',' || *p == '"' || *p == '\n' || *p == '\r') {
+            needs_quoting = 1;
+            break;
+        }
+    }
+
+    if (needs_quoting) {
+        putchar('"');
+        if (needs_prefix) putchar('\'');
+        for (const char *p = s; *p; p++) {
+            if (*p == '"') putchar('"');  /* double embedded quotes */
+            putchar(*p);
+        }
+        putchar('"');
+    } else {
+        if (needs_prefix) putchar('\'');
+        printf("%s", s);
+    }
+}
+
 /* Escape a string for safe JSON output */
 static void print_json_escaped(const char *str) {
     if (!str) {
@@ -491,28 +523,8 @@ void export_csv_batch_item(const histogram_t *hist, const char *path, interval_t
             snprintf(time_buf, sizeof(time_buf), "unknown");
         }
 
-        /* CSV with Path column - need to escape path if it contains commas/quotes */
-        int needs_quoting = 0;
-        for (const char *p = path; *p; p++) {
-            if (*p == ',' || *p == '"' || *p == '\n') {
-                needs_quoting = 1;
-                break;
-            }
-        }
-
-        if (needs_quoting) {
-            printf("\"");
-            for (const char *p = path; *p; p++) {
-                if (*p == '"') {
-                    printf("\"\""); /* Escape quotes by doubling */
-                } else {
-                    putchar(*p);
-                }
-            }
-            printf("\"");
-        } else {
-            printf("%s", path);
-        }
+        /* Path column: quote per RFC 4180 and neutralize formula injection. */
+        print_csv_field(path);
 
         printf(",%s,%" PRIu64 ",%" PRIu64 ",%s\n",
                time_buf,

@@ -4,8 +4,19 @@
 #include <string.h>
 
 #define INITIAL_BUCKET_CAPACITY 128
+#define INITIAL_INDEX_CAPACITY 256   /* power of two; load factor kept < 0.75 */
 #define SECONDS_PER_HOUR (60 * 60)
 #define SECONDS_PER_DAY (24 * 60 * 60)
+
+/* Hash a normalized time_t into a slot. cap must be a power of two. */
+static size_t hash_time(time_t t, size_t cap) {
+    /* SplitMix64-style finalizer for good dispersion of clustered timestamps. */
+    uint64_t x = (uint64_t)t;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+    x ^= (x >> 31);
+    return (size_t)(x & (uint64_t)(cap - 1));
+}
 
 static time_t normalize_time(time_t t, interval_t interval) {
     struct tm *tm_info;
@@ -46,6 +57,30 @@ static time_t normalize_time(time_t t, interval_t interval) {
     }
 }
 
+/* Insert bucket index bucket_idx into the hash, recomputing its slot.
+ * Load factor is kept below 1 by the caller, so an empty slot always exists. */
+static void index_insert(histogram_t *hist, size_t bucket_idx) {
+    size_t slot = hash_time(hist->buckets[bucket_idx].start_time, hist->index_capacity);
+    while (hist->index_slots[slot] != 0) {
+        slot = (slot + 1) & (hist->index_capacity - 1);
+    }
+    hist->index_slots[slot] = bucket_idx + 1;
+}
+
+/* Grow the hash to new_capacity and re-insert every existing bucket.
+ * Returns 0 on success, -1 on allocation failure (leaving the old table intact). */
+static int index_rehash(histogram_t *hist, size_t new_capacity) {
+    size_t *new_slots = calloc(new_capacity, sizeof(size_t));
+    if (!new_slots) return -1;
+    free(hist->index_slots);
+    hist->index_slots = new_slots;
+    hist->index_capacity = new_capacity;
+    for (size_t i = 0; i < hist->bucket_count; i++) {
+        index_insert(hist, i);
+    }
+    return 0;
+}
+
 static int compare_buckets(const void *a, const void *b) {
     const time_bucket_t *ba = (const time_bucket_t *)a;
     const time_bucket_t *bb = (const time_bucket_t *)b;
@@ -63,6 +98,15 @@ histogram_t* histogram_create(interval_t interval) {
         free(hist);
         return NULL;
     }
+
+    hist->index_slots = calloc(INITIAL_INDEX_CAPACITY, sizeof(size_t));
+    if (!hist->index_slots) {
+        free(hist->buckets);
+        free(hist);
+        return NULL;
+    }
+    hist->index_capacity = INITIAL_INDEX_CAPACITY;
+    hist->alloc_failed = 0;
 
     hist->bucket_count = 0;
     hist->bucket_capacity = INITIAL_BUCKET_CAPACITY;
@@ -95,6 +139,7 @@ histogram_t* histogram_create(interval_t interval) {
 void histogram_destroy(histogram_t *hist) {
     if (!hist) return;
     free(hist->buckets);
+    free(hist->index_slots);
     free(hist);
 }
 
@@ -106,34 +151,56 @@ void histogram_add_file(histogram_t *hist, time_t file_time, uint64_t size) {
 
     time_t bucket_time = normalize_time(file_time, hist->interval);
 
-    /* Find existing bucket or create new one */
-    size_t i;
-    for (i = 0; i < hist->bucket_count; i++) {
-        if (hist->buckets[i].start_time == bucket_time) {
-            hist->buckets[i].total_bytes += size;
-            hist->buckets[i].file_count++;
+    /* Look up an existing bucket via the hash index (O(1) average). */
+    size_t slot = hash_time(bucket_time, hist->index_capacity);
+    while (hist->index_slots[slot] != 0) {
+        size_t bi = hist->index_slots[slot] - 1;
+        if (hist->buckets[bi].start_time == bucket_time) {
+            hist->buckets[bi].total_bytes += size;
+            hist->buckets[bi].file_count++;
             hist->total_bytes += size;
             hist->total_files++;
             return;
         }
+        slot = (slot + 1) & (hist->index_capacity - 1);
     }
 
-    /* Need to add a new bucket */
+    /* Not found: grow the bucket array if full (overflow-checked). */
     if (hist->bucket_count >= hist->bucket_capacity) {
+        if (hist->bucket_capacity > SIZE_MAX / 2 ||
+            hist->bucket_capacity * 2 > SIZE_MAX / sizeof(time_bucket_t)) {
+            fprintf(stderr, "Error: bucket capacity overflow\n");
+            hist->alloc_failed = 1;
+            return;
+        }
         size_t new_capacity = hist->bucket_capacity * 2;
         time_bucket_t *new_buckets = realloc(hist->buckets,
-                                              sizeof(time_bucket_t) * new_capacity);
+                                             sizeof(time_bucket_t) * new_capacity);
         if (!new_buckets) {
             fprintf(stderr, "Error: out of memory\n");
+            hist->alloc_failed = 1;
             return;
         }
         hist->buckets = new_buckets;
         hist->bucket_capacity = new_capacity;
     }
 
+    /* Keep the hash load factor below 0.75; rehash (grow) if needed. A stored
+     * slot becomes stale after a rehash, so the new bucket is always inserted
+     * afterward via index_insert(), which recomputes its slot from scratch. */
+    if (hist->bucket_count + 1 > (hist->index_capacity / 4) * 3) {
+        if (hist->index_capacity > SIZE_MAX / 2 ||
+            index_rehash(hist, hist->index_capacity * 2) != 0) {
+            fprintf(stderr, "Error: out of memory\n");
+            hist->alloc_failed = 1;
+            return;
+        }
+    }
+
     hist->buckets[hist->bucket_count].start_time = bucket_time;
     hist->buckets[hist->bucket_count].total_bytes = size;
     hist->buckets[hist->bucket_count].file_count = 1;
+    index_insert(hist, hist->bucket_count);
     hist->bucket_count++;
 
     hist->total_bytes += size;

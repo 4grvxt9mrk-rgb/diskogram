@@ -103,6 +103,7 @@ static int scan_directory_posix(const char *path, grouping_mode_t mode, histogra
     struct dirent *entry;
     struct stat st;
     char full_path[MAX_PATH_LEN];
+    int ret;
 
     dir = opendir(path);
     if (!dir) {
@@ -121,8 +122,16 @@ static int scan_directory_posix(const char *path, grouping_mode_t mode, histogra
             continue;
         }
 
-        snprintf(full_path, sizeof(full_path), "%s%s%s",
-                 path, PATH_SEPARATOR_STR, entry->d_name);
+        ret = snprintf(full_path, sizeof(full_path), "%s%s%s",
+                       path, PATH_SEPARATOR_STR, entry->d_name);
+        if (ret < 0 || (size_t)ret >= sizeof(full_path)) {
+            hist->error_count++;
+            snprintf(hist->last_error, sizeof(hist->last_error),
+                     "Path too long (MAX_PATH_LEN exceeded): %s%s%s",
+                     path, PATH_SEPARATOR_STR, entry->d_name);
+            histogram_log_error(hist, hist->last_error);
+            continue;
+        }
 
         if (lstat(full_path, &st) != 0) {
             hist->error_count++;
