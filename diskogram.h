@@ -7,9 +7,9 @@
 
 /* Version information */
 #define DISKOGRAM_VERSION_MAJOR 2
-#define DISKOGRAM_VERSION_MINOR 4
+#define DISKOGRAM_VERSION_MINOR 5
 #define DISKOGRAM_VERSION_PATCH 0
-#define DISKOGRAM_VERSION "2.4.0"
+#define DISKOGRAM_VERSION "2.5.0"
 
 /* Platform detection */
 #ifdef _WIN32

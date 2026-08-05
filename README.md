@@ -184,7 +184,7 @@ Results may be incomplete.
 
 ```csv
 # Disk Space by Modification Time: /Users/username/Documents
-# Version: 2.4.0
+# Version: 2.5.0
 # Scan Duration: 3 seconds
 # Directories Scanned: 45
 # Errors: 0
@@ -347,8 +347,41 @@ Platform-specific code is isolated with `#ifdef _WIN32` / `#else` preprocessor b
 
 ## Version History
 
+### 2.5.0 — Security & robustness hardening
+
+This release focuses on hardening against hostile inputs (attacker-controlled
+filenames, paths, and timestamps) and improving large-scan performance. No
+command-line flags changed.
+
+- **Security**
+  - Terminal-escape injection: paths and error messages printed to a terminal
+    or error log now have control/DEL bytes rendered as visible `\xNN` escapes,
+    neutralizing ANSI/OSC sequence injection from crafted filenames.
+  - CSV formula injection: batch-CSV path fields beginning with `= + - @`, tab,
+    or CR are prefixed with an apostrophe (with RFC 4180 quoting).
+  - XML output: C0 control bytes illegal in XML 1.0 are replaced with U+FFFD
+    instead of producing malformed documents.
+- **Performance**
+  - Date-bucket aggregation now uses a hash index (average O(1) per file)
+    instead of a linear scan, so large trees with many distinct timestamps no
+    longer degrade to quadratic time.
+- **Robustness & correctness**
+  - `--last N` is validated with `strtol` (rejects input like `12x`; range
+    1–100000) instead of `atoi`.
+  - Batch JSON no longer emits a trailing comma when the last path is empty.
+  - Overlong stdin lines are rejected rather than silently split; a trailing
+    carriage return is stripped so CRLF input resolves correctly.
+  - Bucket-array growth is overflow-checked, `strdup` is checked, and
+    allocation failures during a scan now produce a non-zero exit status.
+  - POSIX path construction checks for truncation and skips over-long paths
+    with a logged error (matching the existing Windows behaviour).
+
+See [SECURITY-BUGS.md](SECURITY-BUGS.md) for the full review and remaining
+open items.
+
 | Version | Changes |
 |---------|---------|
+| 2.5.0 | Security & robustness hardening: escape-safe output, CSV/XML injection fixes, O(1) aggregation, stricter input validation |
 | 2.4.0 | `--last N unit` time window filter; `--one-file-system` default ON with `--follow-mounts` opt-out |
 | 2.2.0 | Fix 64-bit integer printing on Windows (`PRIu64`) |
 | 2.1.0 | JSON/XML always use array/collection wrapper; `Path` column in batch CSV |
