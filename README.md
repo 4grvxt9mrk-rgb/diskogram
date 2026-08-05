@@ -337,6 +337,24 @@ diskogram --error-log full.txt --log-errors-stderr /var
 
 Platform-specific code is isolated with `#ifdef _WIN32` / `#else` preprocessor blocks.
 
+### Design Philosophy: Single-Threaded by Design
+
+Diskogram is deliberately **single-threaded**. Directory scanning is dominated
+by filesystem/metadata I/O rather than CPU, so the portability cost and added
+complexity of a cross-platform threading layer are not worth it for the common
+cases (local disks and low-latency network mounts, where scans are already
+fast). Keeping the core simple and portable is a primary goal.
+
+When parallelism *is* worthwhile — for example, scanning very large trees over
+a higher-latency network mount — it can be achieved **without changing the
+tool** by driving it from a wrapper script: pre-scan the tree, split it into
+non-overlapping subdirectories, dispatch several diskogram processes in
+parallel (e.g. GNU `parallel` / `xargs -P`, or PowerShell `-Parallel`), and
+merge the results. Batch mode (`--stdin --batch --json`) is designed for exactly
+this — each worker emits a JSON array of per-directory histograms that the
+wrapper combines. The number of parallel processes also serves as a natural
+throttle on load against the file server.
+
 ## Use Cases
 
 - **Disk cleanup planning** — Identify when large amounts of data were added
